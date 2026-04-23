@@ -75,6 +75,51 @@
   ansible.builtin.command: "virsh net-autostart {{ kvm_libvirt_network_name }}"
   when: libvirt_network_info_after_define.stdout is not search('Autostart:\\s+yes')
 
+# Query the default storage pool; later tasks define it only if it is missing.
+- name: Check whether default libvirt storage pool exists
+  ansible.builtin.command: "virsh pool-info {{ kvm_libvirt_storage_pool_name }}"
+  register: libvirt_storage_pool_info
+  changed_when: false
+  failed_when: false
+
+# Ensure the backing directory exists before defining the dir-based storage pool.
+- name: Ensure default libvirt storage pool path exists
+  ansible.builtin.file:
+    path: "{{ kvm_libvirt_storage_pool_path }}"
+    state: directory
+    mode: "0755"
+  when: libvirt_storage_pool_info.rc != 0
+
+# Register the default dir pool expected by the Terraform libvirt provider.
+- name: Define default libvirt storage pool when missing
+  ansible.builtin.command:
+    argv:
+      - virsh
+      - pool-define-as
+      - --name
+      - "{{ kvm_libvirt_storage_pool_name }}"
+      - --type
+      - dir
+      - --target
+      - "{{ kvm_libvirt_storage_pool_path }}"
+  when: libvirt_storage_pool_info.rc != 0
+
+# Refresh pool metadata after the optional define step.
+- name: Refresh default libvirt storage pool status
+  ansible.builtin.command: "virsh pool-info {{ kvm_libvirt_storage_pool_name }}"
+  register: libvirt_storage_pool_info_after_define
+  changed_when: false
+
+# Activate the pool so libvirt can create VM disks immediately.
+- name: Start default libvirt storage pool
+  ansible.builtin.command: "virsh pool-start {{ kvm_libvirt_storage_pool_name }}"
+  when: libvirt_storage_pool_info_after_define.stdout is not search('State:\\s+running')
+
+# Ensure the pool is reactivated automatically after host reboot.
+- name: Enable autostart for default libvirt storage pool
+  ansible.builtin.command: "virsh pool-autostart {{ kvm_libvirt_storage_pool_name }}"
+  when: libvirt_storage_pool_info_after_define.stdout is not search('Autostart:\\s+yes')
+
 # Verify the operator account can talk to the system libvirt socket without root.
 - name: Verify virsh access for the host user
   ansible.builtin.command: "virsh -c qemu:///system net-list --all"
@@ -91,7 +136,7 @@
   ansible.builtin.debug:
     msg:
       - "virsh validation for {{ kvm_libvirt_host_user }} is deferred until a new login session is used."
-      - "Reconnect via SSH and rerun the playbook or validate manually with 'virsh -c qemu:///system net-list --all'."
+      - "Reconnect via SSH and rerun the playbook or validate manually with 'virsh -c qemu:///system net-list --all' and 'virsh -c qemu:///system pool-list --all'."
   when:
     - kvm_libvirt_host_user_groups.changed
     - virsh_networks_result.rc != 0

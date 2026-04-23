@@ -21,5 +21,9 @@ kvm_libvirt_network_netmask: 255.255.255.0
 kvm_libvirt_network_dhcp_start: 192.168.122.2
 kvm_libvirt_network_dhcp_end: 192.168.122.254
 
+# Default storage pool used by Terraform for VM disks and cloud-init images.
+kvm_libvirt_storage_pool_name: default
+kvm_libvirt_storage_pool_path: /var/lib/libvirt/images
+
 # Reuse the SSH user by default so virsh can be validated for the normal operator account.
 kvm_libvirt_host_user: "{{ ansible_user | default('ipolishchuk') }}"
