@@ -37,7 +37,7 @@
 
 # Query the default NAT network; later tasks create it only if it is missing.
 - name: Check whether default libvirt network exists
-  ansible.builtin.command: "virsh net-info {{ kvm_libvirt_network_name }}"
+  ansible.builtin.command: "virsh -c {{ kvm_libvirt_uri }} net-info {{ kvm_libvirt_network_name }}"
   register: libvirt_network_info
   changed_when: false
   failed_when: false
@@ -55,29 +55,31 @@
   ansible.builtin.command:
     argv:
       - virsh
+      - -c
+      - "{{ kvm_libvirt_uri }}"
       - net-define
       - "/tmp/{{ kvm_libvirt_network_name }}-libvirt-network.xml"
   when: libvirt_network_info.rc != 0
 
 # Refresh network metadata after the optional define step.
 - name: Refresh default libvirt network status
-  ansible.builtin.command: "virsh net-info {{ kvm_libvirt_network_name }}"
+  ansible.builtin.command: "virsh -c {{ kvm_libvirt_uri }} net-info {{ kvm_libvirt_network_name }}"
   register: libvirt_network_info_after_define
   changed_when: false
 
 # Bring the network up if it exists but is not currently active.
 - name: Start default libvirt network
-  ansible.builtin.command: "virsh net-start {{ kvm_libvirt_network_name }}"
+  ansible.builtin.command: "virsh -c {{ kvm_libvirt_uri }} net-start {{ kvm_libvirt_network_name }}"
   when: libvirt_network_info_after_define.stdout is not search('Active:\\s+yes')
 
 # Ensure the network comes back automatically after host reboot.
 - name: Enable autostart for default libvirt network
-  ansible.builtin.command: "virsh net-autostart {{ kvm_libvirt_network_name }}"
+  ansible.builtin.command: "virsh -c {{ kvm_libvirt_uri }} net-autostart {{ kvm_libvirt_network_name }}"
   when: libvirt_network_info_after_define.stdout is not search('Autostart:\\s+yes')
 
 # Query the default storage pool; later tasks define it only if it is missing.
 - name: Check whether default libvirt storage pool exists
-  ansible.builtin.command: "virsh pool-info {{ kvm_libvirt_storage_pool_name }}"
+  ansible.builtin.command: "virsh -c {{ kvm_libvirt_uri }} pool-info {{ kvm_libvirt_storage_pool_name }}"
   register: libvirt_storage_pool_info
   changed_when: false
   failed_when: false
@@ -95,6 +97,8 @@
   ansible.builtin.command:
     argv:
       - virsh
+      - -c
+      - "{{ kvm_libvirt_uri }}"
       - pool-define-as
       - --name
       - "{{ kvm_libvirt_storage_pool_name }}"
@@ -106,23 +110,23 @@
 
 # Refresh pool metadata after the optional define step.
 - name: Refresh default libvirt storage pool status
-  ansible.builtin.command: "virsh pool-info {{ kvm_libvirt_storage_pool_name }}"
+  ansible.builtin.command: "virsh -c {{ kvm_libvirt_uri }} pool-info {{ kvm_libvirt_storage_pool_name }}"
   register: libvirt_storage_pool_info_after_define
   changed_when: false
 
 # Activate the pool so libvirt can create VM disks immediately.
 - name: Start default libvirt storage pool
-  ansible.builtin.command: "virsh pool-start {{ kvm_libvirt_storage_pool_name }}"
+  ansible.builtin.command: "virsh -c {{ kvm_libvirt_uri }} pool-start {{ kvm_libvirt_storage_pool_name }}"
   when: libvirt_storage_pool_info_after_define.stdout is not search('State:\\s+running')
 
 # Ensure the pool is reactivated automatically after host reboot.
 - name: Enable autostart for default libvirt storage pool
-  ansible.builtin.command: "virsh pool-autostart {{ kvm_libvirt_storage_pool_name }}"
+  ansible.builtin.command: "virsh -c {{ kvm_libvirt_uri }} pool-autostart {{ kvm_libvirt_storage_pool_name }}"
   when: libvirt_storage_pool_info_after_define.stdout is not search('Autostart:\\s+yes')
 
 # Verify the operator account can talk to the system libvirt socket without root.
 - name: Verify virsh access for the host user
-  ansible.builtin.command: "virsh -c qemu:///system net-list --all"
+  ansible.builtin.command: "virsh -c {{ kvm_libvirt_uri }} net-list --all"
   become: true
   become_user: "{{ kvm_libvirt_host_user }}"
   register: virsh_networks_result
@@ -136,7 +140,7 @@
   ansible.builtin.debug:
     msg:
       - "virsh validation for {{ kvm_libvirt_host_user }} is deferred until a new login session is used."
-      - "Reconnect via SSH and rerun the playbook or validate manually with 'virsh -c qemu:///system net-list --all' and 'virsh -c qemu:///system pool-list --all'."
+      - "Reconnect via SSH and rerun the playbook or validate manually with 'virsh -c {{ kvm_libvirt_uri }} net-list --all' and 'virsh -c {{ kvm_libvirt_uri }} pool-list --all'."
   when:
     - kvm_libvirt_host_user_groups.changed
     - virsh_networks_result.rc != 0

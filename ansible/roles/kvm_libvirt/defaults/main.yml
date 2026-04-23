@@ -13,6 +13,9 @@ kvm_libvirt_packages:
 kvm_libvirt_services:
   - libvirtd
 
+# Manage the host-wide libvirt daemon explicitly rather than relying on virsh defaults.
+kvm_libvirt_uri: qemu:///system
+
 # Default NAT network settings for libvirt guests on a WiFi-backed host.
 kvm_libvirt_network_name: default
 kvm_libvirt_network_bridge: virbr0
