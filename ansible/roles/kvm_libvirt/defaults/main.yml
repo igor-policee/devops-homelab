@@ -1,0 +1,25 @@
+---
+# Core packages required for KVM, libvirt management, and VM provisioning tools.
+kvm_libvirt_packages:
+  - cpu-checker
+  - qemu-kvm
+  - qemu-utils
+  - libvirt-daemon-system
+  - libvirt-clients
+  - virtinst
+  - bridge-utils
+
+# Ubuntu 24.04 uses libvirtd for the system-wide libvirt daemon.
+kvm_libvirt_services:
+  - libvirtd
+
+# Default NAT network settings for libvirt guests on a WiFi-backed host.
+kvm_libvirt_network_name: default
+kvm_libvirt_network_bridge: virbr0
+kvm_libvirt_network_address: 192.168.122.1
+kvm_libvirt_network_netmask: 255.255.255.0
+kvm_libvirt_network_dhcp_start: 192.168.122.2
+kvm_libvirt_network_dhcp_end: 192.168.122.254
+
+# Reuse the SSH user by default so virsh can be validated for the normal operator account.
+kvm_libvirt_host_user: "{{ ansible_user | default('ipolishchuk') }}"

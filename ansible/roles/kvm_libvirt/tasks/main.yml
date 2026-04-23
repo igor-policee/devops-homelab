@@ -1,0 +1,97 @@
+---
+# Install the virtualization stack and helper tooling from Ubuntu packages.
+- name: Install KVM and libvirt packages
+  ansible.builtin.apt:
+    name: "{{ kvm_libvirt_packages }}"
+    state: present
+    update_cache: true
+
+# Start libvirt now and keep it enabled across reboots.
+- name: Ensure libvirt service is enabled and running
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop: "{{ kvm_libvirt_services }}"
+
+# Allow the normal SSH user to manage VMs without switching to root every time.
+- name: Ensure host user can manage libvirt
+  ansible.builtin.user:
+    name: "{{ kvm_libvirt_host_user }}"
+    groups:
+      - libvirt
+      - kvm
+    append: true
+  register: kvm_libvirt_host_user_groups
+
+# Fail early if hardware virtualization is unavailable or disabled in BIOS/UEFI.
+- name: Verify CPU virtualization support
+  ansible.builtin.command: kvm-ok
+  register: kvm_ok_result
+  changed_when: false
+
+# Reconnect after changing group membership so later tasks see the refreshed login context.
+- name: Reset SSH connection after updating host user groups
+  ansible.builtin.meta: reset_connection
+  when: kvm_libvirt_host_user_groups.changed
+
+# Query the default NAT network; later tasks create it only if it is missing.
+- name: Check whether default libvirt network exists
+  ansible.builtin.command: "virsh net-info {{ kvm_libvirt_network_name }}"
+  register: libvirt_network_info
+  changed_when: false
+  failed_when: false
+
+# Render the XML definition only when the default network does not already exist.
+- name: Install default libvirt NAT network definition when missing
+  ansible.builtin.template:
+    src: default-network.xml.j2
+    dest: "/tmp/{{ kvm_libvirt_network_name }}-libvirt-network.xml"
+    mode: "0644"
+  when: libvirt_network_info.rc != 0
+
+# Register the network with libvirt from the generated XML definition.
+- name: Define default libvirt NAT network when missing
+  ansible.builtin.command:
+    argv:
+      - virsh
+      - net-define
+      - "/tmp/{{ kvm_libvirt_network_name }}-libvirt-network.xml"
+  when: libvirt_network_info.rc != 0
+
+# Refresh network metadata after the optional define step.
+- name: Refresh default libvirt network status
+  ansible.builtin.command: "virsh net-info {{ kvm_libvirt_network_name }}"
+  register: libvirt_network_info_after_define
+  changed_when: false
+
+# Bring the network up if it exists but is not currently active.
+- name: Start default libvirt network
+  ansible.builtin.command: "virsh net-start {{ kvm_libvirt_network_name }}"
+  when: libvirt_network_info_after_define.stdout is not search('Active:\\s+yes')
+
+# Ensure the network comes back automatically after host reboot.
+- name: Enable autostart for default libvirt network
+  ansible.builtin.command: "virsh net-autostart {{ kvm_libvirt_network_name }}"
+  when: libvirt_network_info_after_define.stdout is not search('Autostart:\\s+yes')
+
+# Verify the operator account can talk to the system libvirt socket without root.
+- name: Verify virsh access for the host user
+  ansible.builtin.command: "virsh -c qemu:///system net-list --all"
+  become: true
+  become_user: "{{ kvm_libvirt_host_user }}"
+  register: virsh_networks_result
+  changed_when: false
+  failed_when:
+    - virsh_networks_result.rc != 0
+    - not kvm_libvirt_host_user_groups.changed
+
+# On the first run the user may need to reconnect before libvirt socket permissions apply fully.
+- name: Explain deferred virsh validation when group membership changed
+  ansible.builtin.debug:
+    msg:
+      - "virsh validation for {{ kvm_libvirt_host_user }} is deferred until a new login session is used."
+      - "Reconnect via SSH and rerun the playbook or validate manually with 'virsh -c qemu:///system net-list --all'."
+  when:
+    - kvm_libvirt_host_user_groups.changed
+    - virsh_networks_result.rc != 0

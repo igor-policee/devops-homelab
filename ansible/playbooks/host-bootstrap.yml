@@ -1,0 +1,8 @@
+---
+- name: Prepare hypervisor host
+  hosts: hypervisors
+  become: true
+  roles:
+    # Install and validate the local virtualization stack on the physical host.
+    - role: kvm_libvirt
+

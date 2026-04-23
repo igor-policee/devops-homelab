@@ -1,0 +1,13 @@
+<!-- Default libvirt NAT network used by the Kubernetes VMs on the single host. -->
+<network>
+  <name>{{ kvm_libvirt_network_name }}</name>
+  <!-- NAT is used because the physical host uplink is WiFi, not Ethernet bridge. -->
+  <forward mode='nat'/>
+  <bridge name='{{ kvm_libvirt_network_bridge }}' stp='on' delay='0'/>
+  <ip address='{{ kvm_libvirt_network_address }}' netmask='{{ kvm_libvirt_network_netmask }}'>
+    <dhcp>
+      <!-- Hand out addresses from the standard libvirt guest subnet. -->
+      <range start='{{ kvm_libvirt_network_dhcp_start }}' end='{{ kvm_libvirt_network_dhcp_end }}'/>
+    </dhcp>
+  </ip>
+</network>
