@@ -191,7 +191,7 @@ terraform apply
 
 Notes:
 
-- The Ansible bootstrap command is expected to run from `/repo/homelab-ubuntu/ansible` so the repository-local `ansible.cfg` resolves `inventory/` and `roles/` correctly.
+- The Ansible bootstrap command is expected to run from the repository `ansible/` directory so the repository-local `ansible.cfg` resolves `inventory/` and `roles/` correctly.
 - Terraform must run on a machine where both `terraform` and `virsh` can reach the same libvirt daemon.
 - The Terraform stack assumes the existing `default` libvirt network remains the source of truth for guest networking.
 
