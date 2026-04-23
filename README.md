@@ -174,9 +174,14 @@ If the bootstrap adds the SSH user to the `libvirt` or `kvm` groups, reconnect y
 
 ```bash
 kvm-ok
-virsh net-list --all
-virsh pool-list --all
+virsh -c qemu:///system net-list --all
+virsh -c qemu:///system pool-list --all
 ```
+
+Bootstrap note:
+
+- The `kvm_libvirt` role manages the host-wide libvirt daemon through `qemu:///system`. Use the same URI in manual verification commands, because plain `virsh` may resolve to `qemu:///session` for a regular user and show an empty libvirt state.
+- On Ubuntu 24.04, repeated Ansible runs may still report `changed` for the `libvirtd` systemd unit even when it is already enabled and running. Treat that as a known idempotency quirk unless the task also returns an actual failure.
 
 Plan and apply the VM provisioning stack:
 
