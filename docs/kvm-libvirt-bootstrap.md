@@ -13,10 +13,11 @@ This phase prepares the physical Ubuntu 24.04 host for VM-based Kubernetes nodes
 
 ## Run
 
-From the repository root:
+From the repository `ansible/` directory:
 
 ```bash
-ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/host-bootstrap.yml
+cd ansible
+ansible-playbook -K playbooks/host-bootstrap.yml
 ```
 
 If your local SSH config already contains the `homelab-ubuntu` host entry, the inventory can stay as-is.

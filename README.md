@@ -151,6 +151,52 @@ devops-homelab/
 
 ---
 
+## ▶️ Command Order
+
+Use the repository root as the working directory unless a step explicitly changes directories.
+
+Prerequisites check:
+
+```bash
+ansible --version
+terraform version
+virsh --version
+```
+
+Run the physical host bootstrap:
+
+```bash
+cd ansible
+ansible-playbook -K playbooks/host-bootstrap.yml
+```
+
+If the bootstrap adds the SSH user to the `libvirt` or `kvm` groups, reconnect your SSH session and verify the host state:
+
+```bash
+kvm-ok
+virsh net-list --all
+virsh pool-list --all
+```
+
+Plan and apply the VM provisioning stack:
+
+```bash
+cd ..
+cd terraform/libvirt
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform plan
+terraform apply
+```
+
+Notes:
+
+- The Ansible bootstrap command is expected to run from `/repo/homelab-ubuntu/ansible` so the repository-local `ansible.cfg` resolves `inventory/` and `roles/` correctly.
+- Terraform must run on a machine where both `terraform` and `virsh` can reach the same libvirt daemon.
+- The Terraform stack assumes the existing `default` libvirt network remains the source of truth for guest networking.
+
+---
+
 ## 🌍 External Access
 
 At the current stage:
