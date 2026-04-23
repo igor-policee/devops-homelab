@@ -1,0 +1,36 @@
+# Local Codex scratch file
+.codex
+
+# Terraform working directory and local-only inputs/state
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ansible local runtime artifacts
+.ansible/
+*.retry
+ansible.log
+
+# Local inventory and secret overrides
+ansible/inventory/*.local.yml
+ansible/inventory/*.local.yaml
+ansible/inventory/group_vars/**/*.vault.yml
+ansible/inventory/group_vars/**/*.vault.yaml
+ansible/inventory/host_vars/**/*.vault.yml
+ansible/inventory/host_vars/**/*.vault.yaml
+.vault_pass
+.vault_pass.txt
+
+# Local SSH helper files sometimes used during bootstrap
+known_hosts
+*.pem
+
+# Editor and OS noise
+.DS_Store
