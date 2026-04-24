@@ -10,7 +10,7 @@ Create a flexible, secure environment that is as close to production as possible
 - working with Docker / containerd
 - configuring CI/CD
 - experimenting with networking (Cilium, Gateway API)
-- infrastructure as code (Ansible, Terraform)
+- infrastructure as code (Ansible, OpenTofu)
 
 ---
 
@@ -107,13 +107,13 @@ The project uses a minimal automation stack that covers the full path from the p
 | Area | Tool | Purpose |
 |------|------|---------|
 | Host bootstrap | Ansible | Install and configure SSH, Tailscale, KVM/libvirt, base packages |
-| VM provisioning | Terraform + libvirt provider | Declaratively create the Kubernetes virtual machines |
+| VM provisioning | OpenTofu + libvirt provider | Declaratively create the Kubernetes virtual machines |
 | VM configuration | Ansible | Install containerd, kubeadm, and required system settings |
 | Kubernetes bootstrap | Ansible + kubeadm | Initialize the control plane and join worker nodes |
 | Kubernetes packages | Helm | Install and manage Cilium, ArgoCD, observability tools, and other charts |
 | GitOps | ArgoCD | Continuously reconcile Kubernetes applications from Git |
 | Secrets | SOPS + age | Store encrypted secrets safely in Git |
-| CI checks | GitHub Actions | Validate Terraform, Ansible, YAML, and Helm changes before merge |
+| CI checks | GitHub Actions | Validate OpenTofu, Ansible, YAML, and Helm changes before merge |
 
 ---
 
@@ -141,7 +141,7 @@ devops-homelab/
 ## 🚀 Implementation Order
 
 1. Finish physical host bootstrap: KVM/libvirt and base packages.
-2. Provision the virtual machines with Terraform and the libvirt provider.
+2. Provision the virtual machines with OpenTofu and the libvirt provider.
 3. Prepare the virtual machines with Ansible for Kubernetes usage.
 4. Bootstrap the Kubernetes cluster with kubeadm through Ansible.
 5. Install Cilium with Helm.
@@ -159,7 +159,7 @@ Prerequisites check:
 
 ```bash
 ansible --version
-terraform version
+tofu version
 virsh --version
 ```
 
@@ -189,16 +189,16 @@ Plan and apply the VM provisioning stack:
 cd ..
 cd terraform/libvirt
 cp terraform.tfvars.example terraform.tfvars
-terraform init
-terraform plan
-terraform apply
+tofu init
+tofu plan
+tofu apply
 ```
 
 Notes:
 
 - The Ansible bootstrap command is expected to run from the repository `ansible/` directory so the repository-local `ansible.cfg` resolves `inventory/` and `roles/` correctly.
-- Terraform must run on a machine where both `terraform` and `virsh` can reach the same libvirt daemon.
-- The Terraform stack assumes the existing `default` libvirt network remains the source of truth for guest networking.
+- OpenTofu must run on a machine where both `tofu` and `virsh` can reach the same libvirt daemon.
+- The OpenTofu stack assumes the existing `default` libvirt network remains the source of truth for guest networking.
 
 ---
 
@@ -226,7 +226,7 @@ Access to services:
 - [x] Configure SSH access
 - [x] Harden SSH to key-based authentication only
 - [x] Install KVM / libvirt with Ansible
-- [ ] Create VMs with Terraform + libvirt provider
+- [ ] Create VMs with OpenTofu + libvirt provider
 
 ### Phase 2 — Kubernetes
 - [ ] Install containerd and kubeadm with Ansible
@@ -262,7 +262,7 @@ The following tools are intentionally not part of the initial stack:
 - Packer: useful later for custom VM images, but not required at the start
 - Vault: too heavy for this single-host homelab; SOPS + age is simpler
 - Rancher: adds an extra management layer that is not needed yet
-- Pulumi: valid alternative, but Terraform is more direct for libvirt VM provisioning
+- Pulumi: valid alternative, but OpenTofu is more direct for libvirt VM provisioning
 - Jenkins: GitHub Actions is simpler for lightweight repository checks
 
 ---

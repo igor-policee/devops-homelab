@@ -1,7 +1,7 @@
 # Local Codex scratch file
 .codex
 
-# Terraform working directory and local-only inputs/state
+# OpenTofu/Terraform working directory and local-only inputs/state
 .terraform/
 *.tfstate
 *.tfstate.*

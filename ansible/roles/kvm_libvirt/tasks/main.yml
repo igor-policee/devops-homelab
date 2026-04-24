@@ -92,7 +92,7 @@
     mode: "0755"
   when: libvirt_storage_pool_info.rc != 0
 
-# Register the default dir pool expected by the Terraform libvirt provider.
+# Register the default dir pool expected by the OpenTofu libvirt provider.
 - name: Define default libvirt storage pool when missing
   ansible.builtin.command:
     argv:
