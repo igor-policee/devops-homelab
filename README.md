@@ -72,9 +72,9 @@ Target access model:
 
 | Node            | CPU | RAM | Disk |
 |-----------------|-----|-----|------|
-| control-plane   | 2   | 4GB | 40GB |
-| worker-1        | 3   | 6GB | 40GB |
-| worker-2        | 3   | 6GB | 40GB |
+| control-plane   | 2   | 4GB | 100GB |
+| worker-1        | 3   | 6GB | 100GB |
+| worker-2        | 3   | 6GB | 100GB |
 
 Addressing model for the VM network:
 
