@@ -1,0 +1,24 @@
+#cloud-config
+hostname: ${hostname}
+manage_etc_hosts: true
+preserve_hostname: false
+
+users:
+  - default
+  - name: ${ssh_username}
+    groups: [adm, sudo]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+ssh_pwauth: false
+disable_root: true
+
+package_update: false
+package_upgrade: false
+runcmd:
+  # Cloud-init already writes the hostname, but forcing it once here keeps the
+  # guest hostname aligned with the libvirt domain name after first boot.
+  - [ cloud-init-per, once, set-hostname, hostnamectl, set-hostname, ${hostname} ]

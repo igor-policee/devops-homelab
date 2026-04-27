@@ -20,9 +20,10 @@ Completed so far:
 - OpenTofu provider access works on the host through an offline mirror configuration
 - `terraform/libvirt/terraform.tfvars` now exists locally with:
   - `ubuntu_image_source` set to the Ubuntu Noble cloud image URL
-  - `vm_ssh_username = "admin"`
+  - `vm_ssh_username = "homelab"`
   - a dedicated VM SSH public key, separate from the host SSH key
-- `tofu init` and `tofu plan` were successfully verified on `homelab-ubuntu`
+- `tofu init`, `tofu plan`, `tofu apply`, and `tofu destroy` were successfully verified on `homelab-ubuntu`
+- SSH access to all 3 guests was verified with the dedicated VM key and the `homelab` user
 
 Current access model:
 - Local SSH from home LAN works
@@ -55,7 +56,7 @@ Verified state:
 - Tailscale will be configured only at the final remote-access phase
 - VM disks were increased from `40 GiB` to `100 GiB`
 - VM SSH access should use:
-  - a neutral shared admin account (`admin`)
+  - a neutral shared account (`homelab`)
   - a dedicated VM SSH keypair
   - no reuse of the host SSH key
 
@@ -98,11 +99,10 @@ Phase 1 completed:
 - Validate `kvm-ok`, `libvirtd`, the default NAT network, the default storage pool, and non-root `virsh -c qemu:///system` access on the host
 - Install OpenTofu on `homelab-ubuntu`
 - Prepare `terraform.tfvars`
-- Verify `tofu init` and `tofu plan`
+- Verify `tofu init`, `tofu plan`, `tofu apply`, and `tofu destroy`
 
 Phase 1 pending:
-- Successfully complete `tofu apply`
-- Boot all 3 VMs with working guest networking and DHCP leases
+- Move on to guest configuration with Ansible
 
 Later phases remain unchanged:
 - Kubernetes bootstrap with kubeadm
@@ -123,31 +123,36 @@ Later phases remain unchanged:
 - Tailscale moved to the final phase
 - VM disk sizes are now documented as `100GB`
 
-## Current Blocker
+## Current Status Of Provisioning
 
-The main blocker is no longer `tofu`, provider installation, or libvirt permissions. The current blocker is guest networking inside the VM after boot.
+The earlier guest-networking blocker is resolved.
 
-Observed facts:
-- `tofu init` succeeds via the offline provider mirror
-- `tofu plan` succeeds
-- `tofu apply` creates:
+Observed facts from the successful validation cycle:
+- `tofu apply` creates all expected resources:
   - base volume
   - VM overlay disks
   - cloud-init ISOs
   - DHCP reservations
   - libvirt domains
-- VM domains start and reach the guest OS boot process
-- the guest serial console on `control-plane` showed repeated waiting on:
-  - `systemd-networkd-wait-online.service`
-- no VM obtains a DHCP lease
-- `virsh -c qemu:///system net-dhcp-leases default` remains empty
-- `virsh -c qemu:///system domifaddr <vm>` returns no addresses
-- `virsh -c qemu:///system net-dumpxml default` does show the expected DHCP reservations
-- `dnsmasq` host entries exist in `/var/lib/libvirt/dnsmasq/default.hostsfile`
+- all 3 VM domains boot and stay in `running` state
+- `virsh -c qemu:///system net-dhcp-leases default` shows the expected addresses:
+  - `control-plane` → `192.168.122.10`
+  - `worker-1` → `192.168.122.11`
+  - `worker-2` → `192.168.122.12`
+- `virsh -c qemu:///system domifaddr <vm>` returns the same guest addresses
+- guest networking remains reproducible across a full `tofu destroy` and `tofu apply` cycle
+
+Resolved SSH bootstrap issue:
+- guest SSH login with `vm_ssh_username = "admin"` failed even though networking and `sshd` were up
+- offline inspection of the guest disk and cloud-init logs showed that the user was not created
+- root cause from `cloud-init`:
+  - `useradd: group admin exists - if you want to add this user to that group, use -g.`
+- switching the guest username to `homelab` avoided the Ubuntu group-name conflict
 
 Interpretation:
-- host-side libvirt networking appears correct
-- the issue is likely inside the guest networking/bootstrap path, not in the host `libvirt` network definition
+- host-side libvirt networking is functioning correctly
+- guest networking is functioning correctly
+- guest SSH bootstrap is functioning correctly with the `homelab` user
 
 ## Security / AppArmor Findings
 
@@ -163,23 +168,21 @@ Findings from that investigation:
 Practical takeaway:
 - if QEMU backing-file permission errors reappear later, re-check the current `libvirt` security driver and AppArmor interaction first
 
-## Diagnostic File Changes Made During This Session
+## Diagnostic Findings From This Session
 
-There are local, uncommitted diagnostic changes in the Terraform/libvirt stack intended to isolate the guest networking problem.
+The final diagnosis was not a libvirt or DHCP issue.
 
-Current local diagnostics include:
-- [terraform/libvirt/main.tf](/home/ipolishchuk/repo/devops-homelab/terraform/libvirt/main.tf:22)
-  - `network_config` was temporarily removed from `libvirt_cloudinit_disk`
-- [terraform/libvirt/templates/network-config.tftpl](/home/ipolishchuk/repo/devops-homelab/terraform/libvirt/templates/network-config.tftpl:1)
-  - `set-name: ens3` was removed earlier during diagnosis
-- [terraform/libvirt/templates/user-data.tftpl](/home/ipolishchuk/repo/devops-homelab/terraform/libvirt/templates/user-data.tftpl:1)
-  - temporary `runcmd` diagnostics were added to print network and cloud-init state into the guest serial console
-
-These changes were made for debugging and may or may not be retained in the final solution.
+Confirmed guest-side findings:
+- `ens3` comes up successfully
+- the guest receives the expected DHCP lease
+- `sshd` listens on `tcp/22`
+- `cloud-init` reaches `DataSourceNoCloud [seed=/dev/sr0]`
+- `cloud-init` fails in `users_groups` for username `admin`
+- `/home/admin` is absent in the guest filesystem because the user was never created
 
 ## Notes For Next Chat
 
-The next chat should resume from the current guest-networking blocker, not from OpenTofu bootstrap.
+The next chat should resume from Ansible-based guest configuration, not from networking or OpenTofu bootstrap.
 
 What is already done:
 - host bootstrap is done
@@ -187,25 +190,14 @@ What is already done:
 - the repo exists on `homelab-ubuntu`
 - offline provider mirror is configured
 - `terraform.tfvars` is prepared
-- `tofu init` and `tofu plan` work
-- `tofu apply` reaches VM boot
+- `tofu init`, `tofu plan`, `tofu apply`, and `tofu destroy` work
+- guest DHCP and VM boot are confirmed working
+- guest SSH access is confirmed working with the `homelab` user
 
 What needs to happen next:
-1. Continue guest-networking diagnosis from the current serial-console evidence
-2. Determine why the guest stalls on `systemd-networkd-wait-online.service`
-3. Decide whether the final fix should be:
-   - a corrected cloud-init `network_config`
-   - no explicit `network_config` at all
-   - an adjusted guest network renderer / netplan behavior
-4. Once a VM gets a DHCP lease successfully, re-run `tofu apply`
-5. After guest networking works, move on to Ansible for VM configuration
-
-Suggested immediate diagnostic direction:
-- continue inspecting guest-side networking behavior rather than changing host-side libvirt networking again
-- focus on:
-  - guest serial console output
-  - cloud-init-generated network files
-  - netplan / systemd-networkd state inside the guest
+1. Generate or write the Ansible inventory from the confirmed VM addresses
+2. Configure the guests for Kubernetes prerequisites
+3. Move on to kubeadm bootstrap after guest configuration is stable
 
 ## Repository State
 

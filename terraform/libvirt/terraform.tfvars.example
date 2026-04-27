@@ -1,0 +1,3 @@
+ubuntu_image_source = "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
+vm_ssh_username     = "homelab"
+vm_ssh_public_key   = "ssh-ed25519 AAAA... replace-me"

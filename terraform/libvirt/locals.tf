@@ -1,4 +1,6 @@
 locals {
+  # Keep node sizing and addressing in one place so Terraform resources and
+  # follow-up Ansible inventory generation derive from the same source data.
   node_specs = {
     control-plane = {
       ip       = "192.168.122.10"
@@ -29,5 +31,6 @@ locals {
     })
   }
 
+  # Reuse the base image volume unless the source URL or local image path changes.
   ubuntu_image_name = "ubuntu-base-${md5(var.ubuntu_image_source)}.qcow2"
 }
