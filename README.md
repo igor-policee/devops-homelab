@@ -226,7 +226,7 @@ Access to services:
 - [x] Configure SSH access
 - [x] Harden SSH to key-based authentication only
 - [x] Install KVM / libvirt with Ansible
-- [ ] Create VMs with OpenTofu + libvirt provider
+- [x] Create VMs with OpenTofu + libvirt provider
 
 ### Phase 2 — Kubernetes
 - [ ] Install containerd and kubeadm with Ansible
