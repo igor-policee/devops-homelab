@@ -103,6 +103,8 @@ Planned VM IP assignments:
   - Kubernetes package delivery must not depend only on the upstream CDN
   - the project should support an alternate package source for manual bootstrap and Ansible automation
   - the selected fallback source is a dedicated GitLab project named `k8s-bootstrap-artifacts`
+  - after installing Kubernetes packages from fallback artifacts, keep the bootstrap package set on `apt hold`
+  - after installing from fallback artifacts, disable the upstream Kubernetes apt source on the nodes for this phase
 
 ---
 
@@ -244,7 +246,8 @@ Access to services:
 ### Phase 2 — Manual Kubernetes Training
 - [ ] Use Kubernetes `1.35` for the manual training cluster
 - [ ] Record the `pkgs.k8s.io` connectivity limitation and the fallback package-delivery workflow
-- [ ] Publish the required Kubernetes `1.35.4` `.deb` artifacts to the GitLab fallback source
+- [x] Publish the required Kubernetes `1.35.4` `.deb` artifacts to the GitLab fallback source
+- [x] Validate node-local installation of Kubernetes bootstrap packages from the GitLab fallback source
 - [ ] Perform a manual `kubeadm` bootstrap and record the runbook
 - [ ] Rebuild the guests with OpenTofu after the manual training pass
 

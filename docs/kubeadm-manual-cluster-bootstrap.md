@@ -155,6 +155,13 @@ Project decision for this phase:
   - GitLab project: `k8s-bootstrap-artifacts`
   - package name: `kubernetes-debs`
   - package version: `v1.35.4`
+- after installing the package set from fallback artifacts, keep these packages on hold:
+  - `kubeadm`
+  - `kubelet`
+  - `kubectl`
+  - `cri-tools`
+  - `kubernetes-cni`
+- after the fallback installation, disable the upstream Kubernetes apt source on the node for this phase to avoid accidental dependency on `pkgs.k8s.io`
 
 Install repository prerequisites:
 
@@ -194,6 +201,15 @@ kubectl version --client
 Note:
 
 - it is normal for `kubelet` to restart repeatedly before `kubeadm init` or `kubeadm join`
+- when the upstream CDN is unreliable, install the package set from the GitLab fallback source and validate it node-by-node before moving on to `kubeadm init`
+
+Observed result from this session:
+
+- direct large `.deb` downloads from `pkgs.k8s.io` timed out from the project location
+- repository metadata remained reachable even while payload downloads failed
+- the fallback GitLab package source worked correctly for downloading and validating the bootstrap package set
+- the Kubernetes package set was installed from local `.deb` files on the nodes
+- `kubelet` entered an auto-restart loop before `kubeadm init`, which is expected at this stage
 
 ## 4. Initialize the control plane
 
@@ -356,6 +372,47 @@ Recommended supporting files:
 
 - `SHA256SUMS`
 - a short manifest file that records the package set used for the manual and first automated bootstrap
+
+## Post-install package pinning
+
+After installing Kubernetes packages from the GitLab fallback source on a node:
+
+```bash
+sudo apt-mark hold kubelet kubeadm kubectl cri-tools kubernetes-cni
+sudo mv /etc/apt/sources.list.d/kubernetes.list /etc/apt/sources.list.d/kubernetes.list.disabled
+sudo apt-get update
+```
+
+Why this step exists:
+
+- it prevents routine `apt upgrade` runs from drifting the tested bootstrap package set
+- it removes the unstable direct dependency on `pkgs.k8s.io` during this project phase
+- it keeps the manual flow aligned with the intended first Ansible implementation
+
+## Validation loop for all nodes
+
+Use this check from `homelab-ubuntu` after the package installation step:
+
+```bash
+for host in control-plane worker-1 worker-2; do
+  ssh "$host" '
+    echo "==== $(hostname) ===="
+    kubeadm version
+    kubelet --version
+    kubectl version --client
+    apt-mark showhold | grep -E "kubeadm|kubectl|kubelet|cri-tools|kubernetes-cni"
+    systemctl is-enabled kubelet
+    systemctl is-active kubelet
+  '
+done
+```
+
+Expected result at this stage:
+
+- all package version commands succeed
+- all five bootstrap packages appear in the hold list
+- `kubelet` is `enabled`
+- `kubelet` may show `activating` or restart repeatedly before `kubeadm init` and `kubeadm join`
 
 Minimal state snapshot:
 

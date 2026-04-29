@@ -73,6 +73,8 @@ Verified state:
   - store Kubernetes Debian packages in the GitLab Generic Package Registry
   - use package name `kubernetes-debs`
   - use package version `v1.35.4` for the current Kubernetes package set
+  - after local installation from fallback artifacts, keep `kubeadm`, `kubelet`, `kubectl`, `cri-tools`, and `kubernetes-cni` on hold
+  - disable `/etc/apt/sources.list.d/kubernetes.list` on the nodes after the fallback installation for this phase
 
 ## Minimal Automation Stack
 
@@ -208,15 +210,25 @@ What is already done:
 - guest DHCP and VM boot are confirmed working
 - guest SSH access is confirmed working with the `homelab` user
 - `homelab-ubuntu` is the correct execution point for reaching the libvirt guest network directly
+- the GitLab fallback source for Kubernetes bootstrap artifacts is created:
+  - project: `igor-policee/k8s-bootstrap-artifacts`
+  - project id: `81772984`
+  - package name: `kubernetes-debs`
+  - package version: `v1.35.4`
+- the Kubernetes `1.35.4` bootstrap package set was uploaded to the GitLab Generic Package Registry
+- the package set was validated through GitLab download URLs and checksum verification
+- the bootstrap package set was installed on the current nodes from GitLab-hosted `.deb` files instead of direct `pkgs.k8s.io` payload downloads
+- the nodes were configured to keep `kubeadm`, `kubelet`, `kubectl`, `cri-tools`, and `kubernetes-cni` on hold
+- the upstream Kubernetes apt source was disabled on the nodes for this phase after the fallback installation
 
 What needs to happen next:
 1. Perform one manual `kubeadm` installation pass on the current guests and record every step in the dedicated runbook
-2. Publish the required Kubernetes `1.35.4` bootstrap packages to the GitLab fallback source
-3. Record the `pkgs.k8s.io` download-timeout issue and the chosen fallback workflow in the runbook
-4. Capture real outputs and any Ubuntu 24.04-specific fixes from that pass
-5. Recreate the guests with OpenTofu after the manual pass
-6. Convert the validated manual workflow into Ansible roles and playbooks
-7. Keep the Ansible inventory aligned with the confirmed VM addresses for the automation phase
+2. Record the `pkgs.k8s.io` download-timeout issue and the chosen fallback workflow in the runbook
+3. Capture real outputs and any Ubuntu 24.04-specific fixes from that pass
+4. Recreate the guests with OpenTofu after the manual pass
+5. Convert the validated manual workflow into Ansible roles and playbooks
+6. Keep the Ansible inventory aligned with the confirmed VM addresses for the automation phase
+7. Carry the same package-hold and repo-disable behavior into the first Ansible implementation
 
 ## Manual kubeadm training pass
 
