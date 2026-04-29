@@ -42,8 +42,7 @@ Package delivery note:
 Recommended validation from the repository root:
 
 ```bash
-cd ansible
-ansible kubernetes -m ping
+ssh homelab-ubuntu 'for host in control-plane worker-1 worker-2; do ssh "$host" hostname; done'
 ```
 
 If this fails, fix guest access first. Do not continue with `kubeadm` until all three nodes are reachable.
@@ -148,9 +147,7 @@ Run on all nodes.
 Project decision for this phase:
 
 - use Kubernetes minor version `1.35`
-- use the `pkgs.k8s.io` repository for `v1.35`
 - keep the same minor version for the later Ansible automation pass so the manual notes and automation stay aligned
-- if `pkgs.k8s.io` package payload downloads time out, use a fallback artifact source instead of repeatedly retrying the upstream CDN from every node
 - the fallback package source design is:
   - GitLab project: `k8s-bootstrap-artifacts`
   - package name: `kubernetes-debs`
@@ -163,30 +160,48 @@ Project decision for this phase:
   - `kubernetes-cni`
 - after the fallback installation, disable the upstream Kubernetes apt source on the node for this phase to avoid accidental dependency on `pkgs.k8s.io`
 
-Install repository prerequisites:
+Validated installation approach for this environment:
 
 ```bash
+mkdir -p ~/k8s-bootstrap/v1.35.4
+cd ~/k8s-bootstrap/v1.35.4
+
+export GITLAB_TOKEN='YOUR_TOKEN_HERE'
+export GITLAB_PROJECT_ID='81772984'
+export GITLAB_API='https://gitlab.com/api/v4'
+export GITLAB_PACKAGE_NAME='kubernetes-debs'
+export GITLAB_PACKAGE_VERSION='v1.35.4'
+
+for file in \
+  cri-tools_1.35.0-1.1_amd64.deb \
+  kubeadm_1.35.4-1.1_amd64.deb \
+  kubectl_1.35.4-1.1_amd64.deb \
+  kubelet_1.35.4-1.1_amd64.deb \
+  kubernetes-cni_1.8.0-1.1_amd64.deb \
+  SHA256SUMS
+do
+  curl --fail --location \
+    --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+    --output "$file" \
+    "$GITLAB_API/projects/$GITLAB_PROJECT_ID/packages/generic/$GITLAB_PACKAGE_NAME/$GITLAB_PACKAGE_VERSION/$file"
+done
+
+sha256sum -c SHA256SUMS
+
+sudo dpkg -i \
+  cri-tools_1.35.0-1.1_amd64.deb \
+  kubernetes-cni_1.8.0-1.1_amd64.deb \
+  kubelet_1.35.4-1.1_amd64.deb \
+  kubectl_1.35.4-1.1_amd64.deb \
+  kubeadm_1.35.4-1.1_amd64.deb
+
+sudo apt-mark hold kubelet kubeadm kubectl cri-tools kubernetes-cni
+
+if [ -f /etc/apt/sources.list.d/kubernetes.list ]; then
+  sudo mv /etc/apt/sources.list.d/kubernetes.list /etc/apt/sources.list.d/kubernetes.list.disabled
+fi
+
 sudo apt-get update
-sudo apt-get install -y apt-transport-https ca-certificates curl gpg
-sudo mkdir -p -m 755 /etc/apt/keyrings
-```
-
-Add the Kubernetes package signing key and repository:
-
-```bash
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.35/deb/Release.key | \
-  sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-
-echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.35/deb/ /' | \
-  sudo tee /etc/apt/sources.list.d/kubernetes.list
-```
-
-Install Kubernetes packages and pin them:
-
-```bash
-sudo apt-get update
-sudo apt-get install -y kubelet kubeadm kubectl
-sudo apt-mark hold kubelet kubeadm kubectl
 sudo systemctl enable --now kubelet
 ```
 
@@ -196,12 +211,13 @@ Validation:
 kubeadm version
 kubelet --version
 kubectl version --client
+apt-mark showhold | grep -E 'kubeadm|kubectl|kubelet|cri-tools|kubernetes-cni'
 ```
 
 Note:
 
 - it is normal for `kubelet` to restart repeatedly before `kubeadm init` or `kubeadm join`
-- when the upstream CDN is unreliable, install the package set from the GitLab fallback source and validate it node-by-node before moving on to `kubeadm init`
+- the GitLab-hosted package flow is the primary installation path for this project phase
 
 Observed result from this session:
 

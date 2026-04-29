@@ -117,33 +117,7 @@ Phase 1 completed:
 - Prepare `terraform.tfvars`
 - Verify `tofu init`, `tofu plan`, `tofu apply`, and `tofu destroy`
 
-Phase 1 pending:
-- Move on to the manual Kubernetes training pass on the current guests
-
-Later phases remain unchanged:
-- Kubernetes bootstrap with kubeadm
-- Cilium
-- GitOps
-- Observability
-- Final Tailscale setup for external access
-
-## README Status
-
-`README.md` reflects:
-- current LAN IP
-- SSH completed
-- SSH key-only hardening completed
-- KVM/libvirt host bootstrap completed
-- manual verification commands must use `virsh -c qemu:///system`
-- known quirk: repeated Ansible runs may still report `changed` for `libvirtd` even when it is already enabled and running
-- Tailscale moved to the final phase
-- VM disk sizes are now documented as `100GB`
-
-## Current Status Of Provisioning
-
-The earlier guest-networking blocker is resolved.
-
-Observed facts from the successful validation cycle:
+Provisioning state:
 - `tofu apply` creates all expected resources:
   - base volume
   - VM overlay disks
@@ -169,32 +143,6 @@ Interpretation:
 - host-side libvirt networking is functioning correctly
 - guest networking is functioning correctly
 - guest SSH bootstrap is functioning correctly with the `homelab` user
-
-## Security / AppArmor Findings
-
-During this session there was an earlier libvirt/QEMU failure:
-- `Could not open '/var/lib/libvirt/images/ubuntu-base-....qcow2': Permission denied`
-
-Findings from that investigation:
-- plain file permissions did not cleanly explain the failure
-- AppArmor profiles existed in `/etc/apparmor.d/libvirt`
-- the generated profiles did not contain the backing image path
-- `security_driver = "none"` was used as a pragmatic way to get past the backing-image access issue during diagnosis
-
-Practical takeaway:
-- if QEMU backing-file permission errors reappear later, re-check the current `libvirt` security driver and AppArmor interaction first
-
-## Diagnostic Findings From This Session
-
-The final diagnosis was not a libvirt or DHCP issue.
-
-Confirmed guest-side findings:
-- `ens3` comes up successfully
-- the guest receives the expected DHCP lease
-- `sshd` listens on `tcp/22`
-- `cloud-init` reaches `DataSourceNoCloud [seed=/dev/sr0]`
-- `cloud-init` fails in `users_groups` for username `admin`
-- `/home/admin` is absent in the guest filesystem because the user was never created
 
 ## Notes For Next Chat
 
@@ -230,36 +178,23 @@ What needs to happen next:
 6. Keep the Ansible inventory aligned with the confirmed VM addresses for the automation phase
 7. Carry the same package-hold and repo-disable behavior into the first Ansible implementation
 
-## Manual kubeadm training pass
-
-The immediate project goal is to practice a full Kubernetes installation manually before automating it.
-
-Why this step exists:
-- it creates a precise source workflow for the later Ansible implementation
-- it keeps Kubernetes troubleshooting separate from Ansible troubleshooting
-- it produces a reusable notes document for future rebuilds
-
-Repository note:
-- the manual runbook for this phase lives at `docs/kubeadm-manual-cluster-bootstrap.md`
-- the intended sequence is manual cluster build on the current guests, then `tofu destroy` and `tofu apply`, then Ansible automation on fresh guests
-- the manual pass should be executed from `homelab-ubuntu`, because the workstation environment does not directly reach the libvirt guest subnet
-- Kubernetes `1.35` is the pinned project minor version for both the manual and first automated cluster build
-- the package-source fallback must exist outside Kubernetes, because it is needed before the cluster exists
-- the selected fallback package source is the GitLab project `k8s-bootstrap-artifacts`
-
 ## Repository State
 
-Relevant commit from this session:
-- `3724e30` — `terraform: increase vm disk sizes to 100gb`
+Recent relevant commits:
+- `88b2532` — `docs: record manual package bootstrap progress`
+- `169505b` — `docs: define gitlab fallback package source`
+- `eae1d37` — `docs: pin kubernetes to 1.35`
+- `5e2548b` — `docs: define manual kubeadm training phase`
+- `eab3f9c` — `docs: mark vm provisioning complete`
 
-Relevant older commits:
+Important older infrastructure commits:
+- `632226c` — `terraform: add libvirt vm provisioning stack`
+- `3724e30` — `terraform: increase vm disk sizes to 100gb`
 - `c353220` — `chore: replace terraform references with opentofu`
 - `fff267b` — `ansible: manage default libvirt storage pool`
 - `f83ee9e` — `ansible: pin libvirt role to system URI`
-- `93b3931` — `ansible: use systemd module for libvirt service`
-- `107de85` — `docs: clarify libvirt system URI checks`
 
 Current local worktree notes:
-- `docs/handoff-context.md` is intentionally updated to capture the current debugging state
-- multiple `terraform/libvirt/*` files are still untracked or locally modified in the workstation repo
-- the host copy at `~/devops-homelab` should be treated as the operational copy for current OpenTofu work
+- the workstation repository currently has local documentation edits in progress
+- `ansible/inventory/hosts.yml` also has a local modification and should be reviewed separately before any commit
+- the host copy at `~/devops-homelab` should still be treated as the operational copy for current OpenTofu and VM-side bootstrap work

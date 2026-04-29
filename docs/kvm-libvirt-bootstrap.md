@@ -28,8 +28,8 @@ If the playbook reports that `virsh` validation is deferred, reconnect your SSH 
 
 ```bash
 kvm-ok
-virsh net-list --all
-virsh pool-list --all
+virsh -c qemu:///system net-list --all
+virsh -c qemu:///system pool-list --all
 ```
 
 Expected checkpoints:
@@ -41,4 +41,5 @@ Expected checkpoints:
 Note:
 
 - on the first run, adding the SSH user to `libvirt` and `kvm` may require a fresh login before non-root `virsh` access works
+- use `virsh -c qemu:///system` for manual verification so the checks target the host-wide libvirt daemon rather than a per-user session
 - rerunning the playbook after reconnecting should then pass the final validation step cleanly

@@ -93,7 +93,7 @@ Planned VM IP assignments:
 
 ## ☸️ Kubernetes
 
-- Installed with `kubeadm`
+- Planned cluster bootstrap tool: `kubeadm`
 - Target Kubernetes minor version for the current project phase: `1.35`
 - Container runtime: containerd
 - CNI: Cilium
@@ -148,20 +148,6 @@ Important documents for the current phase:
 
 - `docs/kvm-libvirt-bootstrap.md` - host-side KVM/libvirt bootstrap notes
 - `docs/kubeadm-manual-cluster-bootstrap.md` - manual Kubernetes training runbook before Ansible automation
-
----
-
-## 🚀 Implementation Order
-
-1. Finish physical host bootstrap: KVM/libvirt and base packages.
-2. Provision the virtual machines with OpenTofu and the libvirt provider.
-3. Perform one manual `kubeadm` cluster installation on the current guests and document the exact workflow.
-4. Recreate the guests with OpenTofu after the manual training pass.
-5. Bootstrap the Kubernetes cluster with kubeadm through Ansible using the documented manual flow as the source of truth.
-6. Install Cilium with Helm.
-7. Install ArgoCD and move Kubernetes applications to GitOps.
-8. Add observability with Prometheus, Grafana, and Loki.
-9. Add Tailscale for remote access from external networks.
 
 ---
 
@@ -244,8 +230,8 @@ Access to services:
 - [x] Create VMs with OpenTofu + libvirt provider
 
 ### Phase 2 — Manual Kubernetes Training
-- [ ] Use Kubernetes `1.35` for the manual training cluster
-- [ ] Record the `pkgs.k8s.io` connectivity limitation and the fallback package-delivery workflow
+- [x] Use Kubernetes `1.35` for the manual training cluster
+- [x] Record the `pkgs.k8s.io` connectivity limitation and the fallback package-delivery workflow
 - [x] Publish the required Kubernetes `1.35.4` `.deb` artifacts to the GitLab fallback source
 - [x] Validate node-local installation of Kubernetes bootstrap packages from the GitLab fallback source
 - [ ] Perform a manual `kubeadm` bootstrap and record the runbook
