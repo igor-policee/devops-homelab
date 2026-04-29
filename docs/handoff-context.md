@@ -64,6 +64,15 @@ Verified state:
   - use Kubernetes minor version `1.35`
   - use the same minor version for both the manual training pass and the first Ansible automation pass
   - do not upgrade to `1.36` during this phase unless that upgrade is planned explicitly
+- Kubernetes package delivery constraint for the current phase:
+  - direct downloads from `pkgs.k8s.io` may time out from the project location
+  - repository metadata can still be reachable even when large `.deb` downloads fail
+  - the bootstrap workflow therefore needs an alternate package source outside the cluster itself
+- Selected fallback source design:
+  - use a dedicated GitLab project named `k8s-bootstrap-artifacts`
+  - store Kubernetes Debian packages in the GitLab Generic Package Registry
+  - use package name `kubernetes-debs`
+  - use package version `v1.35.4` for the current Kubernetes package set
 
 ## Minimal Automation Stack
 
@@ -202,10 +211,12 @@ What is already done:
 
 What needs to happen next:
 1. Perform one manual `kubeadm` installation pass on the current guests and record every step in the dedicated runbook
-2. Capture real outputs and any Ubuntu 24.04-specific fixes from that pass
-3. Recreate the guests with OpenTofu after the manual pass
-4. Convert the validated manual workflow into Ansible roles and playbooks
-5. Keep the Ansible inventory aligned with the confirmed VM addresses for the automation phase
+2. Publish the required Kubernetes `1.35.4` bootstrap packages to the GitLab fallback source
+3. Record the `pkgs.k8s.io` download-timeout issue and the chosen fallback workflow in the runbook
+4. Capture real outputs and any Ubuntu 24.04-specific fixes from that pass
+5. Recreate the guests with OpenTofu after the manual pass
+6. Convert the validated manual workflow into Ansible roles and playbooks
+7. Keep the Ansible inventory aligned with the confirmed VM addresses for the automation phase
 
 ## Manual kubeadm training pass
 
@@ -221,6 +232,8 @@ Repository note:
 - the intended sequence is manual cluster build on the current guests, then `tofu destroy` and `tofu apply`, then Ansible automation on fresh guests
 - the manual pass should be executed from `homelab-ubuntu`, because the workstation environment does not directly reach the libvirt guest subnet
 - Kubernetes `1.35` is the pinned project minor version for both the manual and first automated cluster build
+- the package-source fallback must exist outside Kubernetes, because it is needed before the cluster exists
+- the selected fallback package source is the GitLab project `k8s-bootstrap-artifacts`
 
 ## Repository State
 

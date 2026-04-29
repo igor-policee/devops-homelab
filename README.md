@@ -98,6 +98,11 @@ Planned VM IP assignments:
 - Container runtime: containerd
 - CNI: Cilium
 - kube-proxy: possibly disabled in favor of eBPF
+- Bootstrap packaging note:
+  - direct access to `pkgs.k8s.io` may be unreliable from the project location
+  - Kubernetes package delivery must not depend only on the upstream CDN
+  - the project should support an alternate package source for manual bootstrap and Ansible automation
+  - the selected fallback source is a dedicated GitLab project named `k8s-bootstrap-artifacts`
 
 ---
 
@@ -238,11 +243,15 @@ Access to services:
 
 ### Phase 2 — Manual Kubernetes Training
 - [ ] Use Kubernetes `1.35` for the manual training cluster
+- [ ] Record the `pkgs.k8s.io` connectivity limitation and the fallback package-delivery workflow
+- [ ] Publish the required Kubernetes `1.35.4` `.deb` artifacts to the GitLab fallback source
 - [ ] Perform a manual `kubeadm` bootstrap and record the runbook
 - [ ] Rebuild the guests with OpenTofu after the manual training pass
 
 ### Phase 3 — Kubernetes Automation
 - [ ] Keep Kubernetes `1.35` in the Ansible automation until an explicit upgrade step is planned
+- [ ] Support an alternate Kubernetes package source in Ansible instead of depending only on `pkgs.k8s.io`
+- [ ] Download Kubernetes bootstrap packages from the GitLab fallback source in Ansible
 - [ ] Install containerd and kubeadm with Ansible
 - [ ] Bring up the control plane with kubeadm through Ansible
 - [ ] Add worker nodes through Ansible

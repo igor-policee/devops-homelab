@@ -32,6 +32,13 @@ Assumptions:
 - SSH access to all guests works with the `homelab` user
 - commands below are run on the guest VMs unless stated otherwise
 
+Package delivery note:
+
+- this environment may have unreliable access to `pkgs.k8s.io` for large package downloads
+- repository metadata can still work while `.deb` payload downloads time out
+- if package installation fails during the manual pass, record the failure and switch to an alternate package source outside the cluster
+- the selected fallback source is the GitLab project `k8s-bootstrap-artifacts` using the GitLab Generic Package Registry
+
 Recommended validation from the repository root:
 
 ```bash
@@ -143,6 +150,11 @@ Project decision for this phase:
 - use Kubernetes minor version `1.35`
 - use the `pkgs.k8s.io` repository for `v1.35`
 - keep the same minor version for the later Ansible automation pass so the manual notes and automation stay aligned
+- if `pkgs.k8s.io` package payload downloads time out, use a fallback artifact source instead of repeatedly retrying the upstream CDN from every node
+- the fallback package source design is:
+  - GitLab project: `k8s-bootstrap-artifacts`
+  - package name: `kubernetes-debs`
+  - package version: `v1.35.4`
 
 Install repository prerequisites:
 
@@ -322,6 +334,28 @@ Capture these values from the manual bootstrap because the later Ansible work wi
 - the pod CIDR
 - the validated Cilium chart version
 - any extra fixes required on Ubuntu 24.04 guests
+- the chosen fallback package-delivery method if the upstream Kubernetes CDN is unreliable
+
+## Fallback package source layout
+
+The selected GitLab fallback source for the current package set:
+
+- project: `k8s-bootstrap-artifacts`
+- package name: `kubernetes-debs`
+- package version: `v1.35.4`
+
+Expected files:
+
+- `cri-tools_1.35.0-1.1_amd64.deb`
+- `kubeadm_1.35.4-1.1_amd64.deb`
+- `kubectl_1.35.4-1.1_amd64.deb`
+- `kubelet_1.35.4-1.1_amd64.deb`
+- `kubernetes-cni_1.8.0-1.1_amd64.deb`
+
+Recommended supporting files:
+
+- `SHA256SUMS`
+- a short manifest file that records the package set used for the manual and first automated bootstrap
 
 Minimal state snapshot:
 
