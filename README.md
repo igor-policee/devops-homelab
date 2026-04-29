@@ -136,18 +136,24 @@ devops-homelab/
 └── docs/
 ```
 
+Important documents for the current phase:
+
+- `docs/kvm-libvirt-bootstrap.md` - host-side KVM/libvirt bootstrap notes
+- `docs/kubeadm-manual-cluster-bootstrap.md` - manual Kubernetes training runbook before Ansible automation
+
 ---
 
 ## 🚀 Implementation Order
 
 1. Finish physical host bootstrap: KVM/libvirt and base packages.
 2. Provision the virtual machines with OpenTofu and the libvirt provider.
-3. Prepare the virtual machines with Ansible for Kubernetes usage.
-4. Bootstrap the Kubernetes cluster with kubeadm through Ansible.
-5. Install Cilium with Helm.
-6. Install ArgoCD and move Kubernetes applications to GitOps.
-7. Add observability with Prometheus, Grafana, and Loki.
-8. Add Tailscale for remote access from external networks.
+3. Perform one manual `kubeadm` cluster installation on the current guests and document the exact workflow.
+4. Recreate the guests with OpenTofu after the manual training pass.
+5. Bootstrap the Kubernetes cluster with kubeadm through Ansible using the documented manual flow as the source of truth.
+6. Install Cilium with Helm.
+7. Install ArgoCD and move Kubernetes applications to GitOps.
+8. Add observability with Prometheus, Grafana, and Loki.
+9. Add Tailscale for remote access from external networks.
 
 ---
 
@@ -199,6 +205,7 @@ Notes:
 - The Ansible bootstrap command is expected to run from the repository `ansible/` directory so the repository-local `ansible.cfg` resolves `inventory/` and `roles/` correctly.
 - OpenTofu must run on a machine where both `tofu` and `virsh` can reach the same libvirt daemon.
 - The OpenTofu stack assumes the existing `default` libvirt network remains the source of truth for guest networking.
+- The manual Kubernetes training pass should be performed from `homelab-ubuntu`, because that host can reach the `192.168.122.0/24` libvirt guest network directly.
 
 ---
 
@@ -228,29 +235,33 @@ Access to services:
 - [x] Install KVM / libvirt with Ansible
 - [x] Create VMs with OpenTofu + libvirt provider
 
-### Phase 2 — Kubernetes
+### Phase 2 — Manual Kubernetes Training
+- [ ] Perform a manual `kubeadm` bootstrap and record the runbook
+- [ ] Rebuild the guests with OpenTofu after the manual training pass
+
+### Phase 3 — Kubernetes Automation
 - [ ] Install containerd and kubeadm with Ansible
-- [ ] Bring up the control plane with kubeadm
-- [ ] Add worker nodes
+- [ ] Bring up the control plane with kubeadm through Ansible
+- [ ] Add worker nodes through Ansible
 - [ ] Install CNI (Cilium) with Helm
 
-### Phase 3 — Networking
+### Phase 4 — Networking
 - [ ] Configure Cilium Gateway API
 - [ ] Ingress routing
 - [ ] Service exposure (NodePort / internal)
 
-### Phase 4 — DevOps Tools
+### Phase 5 — DevOps Tools
 - [ ] Helm
 - [ ] GitOps with ArgoCD
 - [ ] Secrets management with SOPS + age
 - [ ] CI/CD with GitHub Actions
 
-### Phase 5 — Observability
+### Phase 6 — Observability
 - [ ] Prometheus
 - [ ] Grafana
 - [ ] Loki
 
-### Phase 6 — Remote Access
+### Phase 7 — Remote Access
 - [ ] Configure Tailscale for access from external networks
 
 ---

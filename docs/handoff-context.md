@@ -24,6 +24,7 @@ Completed so far:
   - a dedicated VM SSH public key, separate from the host SSH key
 - `tofu init`, `tofu plan`, `tofu apply`, and `tofu destroy` were successfully verified on `homelab-ubuntu`
 - SSH access to all 3 guests was verified with the dedicated VM key and the `homelab` user
+- a baseline Ansible guest-validation playbook now exists at `ansible/playbooks/guest-bootstrap.yml`
 
 Current access model:
 - Local SSH from home LAN works
@@ -102,7 +103,7 @@ Phase 1 completed:
 - Verify `tofu init`, `tofu plan`, `tofu apply`, and `tofu destroy`
 
 Phase 1 pending:
-- Move on to guest configuration with Ansible
+- Move on to the manual Kubernetes training pass on the current guests
 
 Later phases remain unchanged:
 - Kubernetes bootstrap with kubeadm
@@ -182,7 +183,7 @@ Confirmed guest-side findings:
 
 ## Notes For Next Chat
 
-The next chat should resume from Ansible-based guest configuration, not from networking or OpenTofu bootstrap.
+The next chat should resume from the manual `kubeadm` training pass, not from networking or OpenTofu bootstrap.
 
 What is already done:
 - host bootstrap is done
@@ -193,11 +194,28 @@ What is already done:
 - `tofu init`, `tofu plan`, `tofu apply`, and `tofu destroy` work
 - guest DHCP and VM boot are confirmed working
 - guest SSH access is confirmed working with the `homelab` user
+- `homelab-ubuntu` is the correct execution point for reaching the libvirt guest network directly
 
 What needs to happen next:
-1. Generate or write the Ansible inventory from the confirmed VM addresses
-2. Configure the guests for Kubernetes prerequisites
-3. Move on to kubeadm bootstrap after guest configuration is stable
+1. Perform one manual `kubeadm` installation pass on the current guests and record every step in the dedicated runbook
+2. Capture real outputs, version choices, and any Ubuntu 24.04-specific fixes from that pass
+3. Recreate the guests with OpenTofu after the manual pass
+4. Convert the validated manual workflow into Ansible roles and playbooks
+5. Keep the Ansible inventory aligned with the confirmed VM addresses for the automation phase
+
+## Manual kubeadm training pass
+
+The immediate project goal is to practice a full Kubernetes installation manually before automating it.
+
+Why this step exists:
+- it creates a precise source workflow for the later Ansible implementation
+- it keeps Kubernetes troubleshooting separate from Ansible troubleshooting
+- it produces a reusable notes document for future rebuilds
+
+Repository note:
+- the manual runbook for this phase lives at `docs/kubeadm-manual-cluster-bootstrap.md`
+- the intended sequence is manual cluster build on the current guests, then `tofu destroy` and `tofu apply`, then Ansible automation on fresh guests
+- the manual pass should be executed from `homelab-ubuntu`, because the workstation environment does not directly reach the libvirt guest subnet
 
 ## Repository State
 
