@@ -94,6 +94,7 @@ Planned VM IP assignments:
 ## ☸️ Kubernetes
 
 - Installed with `kubeadm`
+- Target Kubernetes minor version for the current project phase: `1.35`
 - Container runtime: containerd
 - CNI: Cilium
 - kube-proxy: possibly disabled in favor of eBPF
@@ -236,10 +237,12 @@ Access to services:
 - [x] Create VMs with OpenTofu + libvirt provider
 
 ### Phase 2 — Manual Kubernetes Training
+- [ ] Use Kubernetes `1.35` for the manual training cluster
 - [ ] Perform a manual `kubeadm` bootstrap and record the runbook
 - [ ] Rebuild the guests with OpenTofu after the manual training pass
 
 ### Phase 3 — Kubernetes Automation
+- [ ] Keep Kubernetes `1.35` in the Ansible automation until an explicit upgrade step is planned
 - [ ] Install containerd and kubeadm with Ansible
 - [ ] Bring up the control plane with kubeadm through Ansible
 - [ ] Add worker nodes through Ansible

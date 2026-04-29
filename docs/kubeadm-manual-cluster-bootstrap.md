@@ -13,6 +13,7 @@ Scope:
 - Ubuntu 24.04 guest nodes created by the OpenTofu libvirt stack
 - one control-plane node: `control-plane`
 - two worker nodes: `worker-1`, `worker-2`
+- Kubernetes target minor version: `1.35`
 - container runtime: `containerd`
 - CNI: Cilium
 
@@ -137,7 +138,11 @@ grep -n 'SystemdCgroup = true' /etc/containerd/config.toml
 
 Run on all nodes.
 
-At the time this runbook was written on April 29, 2026, the current Kubernetes installation page targets the `v1.35` package repository. If you intentionally want another supported minor version, replace `v1.35` below with that version everywhere before installing packages.
+Project decision for this phase:
+
+- use Kubernetes minor version `1.35`
+- use the `pkgs.k8s.io` repository for `v1.35`
+- keep the same minor version for the later Ansible automation pass so the manual notes and automation stay aligned
 
 Install repository prerequisites:
 
@@ -313,7 +318,6 @@ cilium status --wait
 
 Capture these values from the manual bootstrap because the later Ansible work will need to reproduce them:
 
-- package repository minor version used for Kubernetes
 - the exact `kubeadm init` arguments
 - the pod CIDR
 - the validated Cilium chart version

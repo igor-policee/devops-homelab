@@ -60,6 +60,10 @@ Verified state:
   - a neutral shared account (`homelab`)
   - a dedicated VM SSH keypair
   - no reuse of the host SSH key
+- Kubernetes version target for the current phase:
+  - use Kubernetes minor version `1.35`
+  - use the same minor version for both the manual training pass and the first Ansible automation pass
+  - do not upgrade to `1.36` during this phase unless that upgrade is planned explicitly
 
 ## Minimal Automation Stack
 
@@ -198,7 +202,7 @@ What is already done:
 
 What needs to happen next:
 1. Perform one manual `kubeadm` installation pass on the current guests and record every step in the dedicated runbook
-2. Capture real outputs, version choices, and any Ubuntu 24.04-specific fixes from that pass
+2. Capture real outputs and any Ubuntu 24.04-specific fixes from that pass
 3. Recreate the guests with OpenTofu after the manual pass
 4. Convert the validated manual workflow into Ansible roles and playbooks
 5. Keep the Ansible inventory aligned with the confirmed VM addresses for the automation phase
@@ -216,6 +220,7 @@ Repository note:
 - the manual runbook for this phase lives at `docs/kubeadm-manual-cluster-bootstrap.md`
 - the intended sequence is manual cluster build on the current guests, then `tofu destroy` and `tofu apply`, then Ansible automation on fresh guests
 - the manual pass should be executed from `homelab-ubuntu`, because the workstation environment does not directly reach the libvirt guest subnet
+- Kubernetes `1.35` is the pinned project minor version for both the manual and first automated cluster build
 
 ## Repository State
 
