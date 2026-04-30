@@ -225,11 +225,14 @@ What is already done:
 - the localhost operator-tools role now uses explicit `ansible_facts[...]` lookups for architecture detection, avoiding another Ansible injected-fact deprecation warning
 - the latest automation failure showed that `kubelet` could remain stopped after `kubeadm init` / `kubeadm join`, leaving all nodes `NotReady` and Cilium pods stuck in `Pending`
 - the kubeadm roles now explicitly return `kubelet` to `started` after control-plane bootstrap and worker join
+- the first full bootstrap run now succeeds end-to-end, and the remaining idempotency issue was narrowed to the localhost Cilium task reporting `changed` on every rerun because it used `helm upgrade --install` through `command`
+- the Cilium role now uses `kubernetes.core.helm` so the second successful run can remain idempotent when the release is already converged
 
 What needs to happen next:
-1. Sync the updated kubeadm roles to `~/devops-homelab` on `homelab-ubuntu`
+1. Sync the updated Cilium role to `~/devops-homelab` on `homelab-ubuntu`
 2. Re-run `ansible/playbooks/kubernetes-bootstrap.yml` with `GITLAB_TOKEN` exported and `-K` enabled
-3. Validate the automated cluster bootstrap end-to-end with:
+3. Confirm the second run stays idempotent with `changed=0` on `localhost` as well as the guest nodes
+4. Validate the automated cluster bootstrap end-to-end with:
    - `kubectl get nodes -o wide`
    - `kubectl get pods -A`
    - `helm list -n kube-system`
@@ -239,11 +242,11 @@ What needs to happen next:
    - confirm that the final Cilium play no longer depends on SSH host-key state for `homelab-ubuntu`
    - confirm that fresh nodes no longer hit `Port-10250` during the first `kubeadm init`
    - confirm that control-plane recovery is still clean if a previous failed `kubeadm init` left partial kubeadm state behind
-4. Reproduce the validated control-plane arguments in automation:
+5. Reproduce the validated control-plane arguments in automation:
    - `--apiserver-advertise-address=192.168.122.10`
    - `--pod-network-cidr=10.244.0.0/16`
-5. Reproduce the validated Cilium installation in automation with chart version `1.19.3`
-6. Decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate change
+6. Reproduce the validated Cilium installation in automation with chart version `1.19.3`
+7. Decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate change
 
 ## Repository State
 

@@ -230,6 +230,7 @@ Automation notes:
   - `kubectl` from the validated GitLab fallback package source
   - `helm` from the official Helm binary release
 - the final Cilium play now runs with `connection: local` on the Ansible control node instead of SSHing back into `homelab-ubuntu`
+- the final Cilium play uses `kubernetes.core.helm` so a second successful run stays idempotent instead of reporting a false-positive `changed` from `helm upgrade --install`
 - after recreating guests with `tofu destroy` and `tofu apply`, refresh or accept the new SSH host keys before the first Ansible run
 - the package bootstrap role keeps `kubelet` enabled but stopped on fresh nodes so `kubeadm init` and `kubeadm join` own the first clean `kubelet` start
 - after `kubeadm init` and `kubeadm join`, the automation must explicitly return `kubelet` to `started` so node readiness and CNI pods can progress

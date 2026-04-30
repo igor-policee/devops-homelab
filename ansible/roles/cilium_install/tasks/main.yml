@@ -4,20 +4,14 @@
   ansible.builtin.command: helm version --short
   changed_when: false
 
-# Install or reconcile the validated Cilium chart version from the host-side kubeconfig.
+# Reconcile the validated Cilium chart version with an idempotent Helm-aware module.
 - name: Install Cilium chart
-  ansible.builtin.command:
-    argv:
-      - helm
-      - upgrade
-      - --install
-      - cilium
-      - oci://quay.io/cilium/charts/cilium
-      - --version
-      - "{{ cilium_chart_version }}"
-      - --namespace
-      - kube-system
-      - --create-namespace
-      - --wait
-  environment:
-    KUBECONFIG: "{{ kubernetes_operator_kubeconfig_path }}"
+  kubernetes.core.helm:
+    binary_path: helm
+    release_name: cilium
+    chart_ref: oci://quay.io/cilium/charts/cilium
+    chart_version: "{{ cilium_chart_version }}"
+    release_namespace: kube-system
+    create_namespace: true
+    kubeconfig: "{{ kubernetes_operator_kubeconfig_path }}"
+    wait: true
