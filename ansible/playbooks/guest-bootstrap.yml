@@ -12,19 +12,19 @@
     - name: Assert the guest uses systemd as expected on Ubuntu 24.04
       ansible.builtin.assert:
         that:
-          - ansible_service_mgr == "systemd"
+          - ansible_facts["service_mgr"] == "systemd"
         fail_msg: >-
           Expected a systemd-based guest OS before applying Kubernetes prerequisites.
 
     - name: Ensure swap is disabled before kubeadm-specific roles are added
       ansible.builtin.command: swapoff -a
       register: swapoff_result
-      changed_when: ansible_swaptotal_mb | int > 0
-      when: ansible_swaptotal_mb | int > 0
+      changed_when: ansible_facts["swaptotal_mb"] | int > 0
+      when: ansible_facts["swaptotal_mb"] | int > 0
 
     - name: Report the current guest baseline for follow-up Kubernetes preparation
       ansible.builtin.debug:
         msg:
           - "host={{ inventory_hostname }}"
           - "address={{ ansible_host }}"
-          - "service_manager={{ ansible_service_mgr }}"
+          - "service_manager={{ ansible_facts['service_mgr'] }}"

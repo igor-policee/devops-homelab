@@ -7,7 +7,7 @@
 - name: Assert the guest uses systemd
   ansible.builtin.assert:
     that:
-      - ansible_service_mgr == "systemd"
+      - ansible_facts["service_mgr"] == "systemd"
     fail_msg: >-
       Expected a systemd-based guest before applying Kubernetes prerequisites.
 
