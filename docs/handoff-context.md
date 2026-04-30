@@ -222,6 +222,7 @@ What is already done:
 - the package/bootstrap automation now keeps `kubelet` stopped on fresh nodes until `kubeadm init` or `kubeadm join` takes over, which avoids first-run `Port-10250` preflight failures
 - the final Cilium installation play now runs locally on the Ansible control node instead of using SSH back into `homelab-ubuntu`
 - the final localhost play now installs `kubectl` from the GitLab fallback package source and installs Helm from the official Helm binary release when they are missing or out of the validated version
+- the localhost operator-tools role now uses explicit `ansible_facts[...]` lookups for architecture detection, avoiding another Ansible injected-fact deprecation warning
 
 What needs to happen next:
 1. Install Ansible on `homelab-ubuntu` so the new automation playbook can run from the documented execution point
@@ -231,6 +232,7 @@ What needs to happen next:
    - `kubectl get pods -A`
    - `helm list -n kube-system`
    - confirm that the localhost play installs or reuses `kubectl` and `helm` correctly on `homelab-ubuntu`
+   - confirm that the localhost operator-tools role runs without additional Ansible injected-fact deprecation warnings
    - confirm that the final Cilium play no longer depends on SSH host-key state for `homelab-ubuntu`
    - confirm that fresh nodes no longer hit `Port-10250` during the first `kubeadm init`
    - confirm that control-plane recovery is still clean if a previous failed `kubeadm init` left partial kubeadm state behind

@@ -60,7 +60,10 @@
   ansible.builtin.set_fact:
     operator_tools_helm_arch: >-
       {{
-        operator_tools_helm_arch_map.get(ansible_architecture, ansible_architecture)
+        operator_tools_helm_arch_map.get(
+          ansible_facts["architecture"],
+          ansible_facts["architecture"]
+        )
       }}
 
 # Download Helm only when it is missing or at the wrong validated version.
