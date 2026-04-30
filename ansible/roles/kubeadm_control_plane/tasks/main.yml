@@ -17,22 +17,14 @@
     path: /etc/kubernetes/manifests
   register: kubeadm_manifests_dir
 
-# kubelet can keep port 10250 busy after a failed init, so detect that condition explicitly.
-- name: Check whether kubelet secure port 10250 is in use
-  ansible.builtin.shell: "ss -ltnH 'sport = :10250'"
-  register: kubeadm_port_10250
-  changed_when: false
-  failed_when: false
-
-# Treat leftover kubelet config, manifests, or a busy 10250 socket as partial bootstrap state.
+# Treat leftover kubelet config or manifests as partial bootstrap state from a failed init.
 - name: Derive whether the control plane has partial kubeadm state
   ansible.builtin.set_fact:
     kubeadm_partial_state_detected: >-
       {{
         (not kubeadm_admin_conf.stat.exists) and (
           kubeadm_kubelet_conf.stat.exists or
-          kubeadm_manifests_dir.stat.exists or
-          (kubeadm_port_10250.stdout | trim | length > 0)
+          kubeadm_manifests_dir.stat.exists
         )
       }}
 
@@ -64,6 +56,13 @@
     fail_msg: >-
       Partial kubeadm state was detected on the control-plane node while /etc/kubernetes/admin.conf
       is still absent. Re-enable automatic reset or run 'kubeadm reset -f' manually before retrying.
+
+# Keep kubeadm in control of the first clean kubelet start on a fresh or reset node.
+- name: Stop kubelet before kubeadm init when control plane is not initialized
+  ansible.builtin.systemd_service:
+    name: kubelet
+    state: stopped
+  when: not kubeadm_admin_conf.stat.exists
 
 # Reproduce the validated kubeadm init arguments from the manual bootstrap.
 - name: Initialize Kubernetes control plane

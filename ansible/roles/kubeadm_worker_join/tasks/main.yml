@@ -5,6 +5,13 @@
     path: /etc/kubernetes/kubelet.conf
   register: kubeadm_worker_conf
 
+# Keep kubeadm in control of the first clean kubelet start on a fresh worker node.
+- name: Stop kubelet before kubeadm join when worker is not initialized
+  ansible.builtin.systemd_service:
+    name: kubelet
+    state: stopped
+  when: not kubeadm_worker_conf.stat.exists
+
 # Use the token generated on the control plane so worker bootstrap stays fully automated.
 - name: Join worker to the Kubernetes cluster
   ansible.builtin.shell: "{{ hostvars[groups['control_plane'][0]].kubernetes_join_command }}"

@@ -227,6 +227,7 @@ Automation notes:
 - the playbook expects `GITLAB_TOKEN` on the Ansible control node and never stores the token in the repository
 - `homelab-ubuntu` currently remains the intended execution point because it can reach the `192.168.122.0/24` guest network directly
 - after recreating guests with `tofu destroy` and `tofu apply`, refresh or accept the new SSH host keys before the first Ansible run
+- the package bootstrap role keeps `kubelet` enabled but stopped on fresh nodes so `kubeadm init` and `kubeadm join` own the first clean `kubelet` start
 - if a previous `kubeadm init` attempt left partial control-plane state behind, the automation now runs `kubeadm reset -f` automatically before retrying `kubeadm init` while `/etc/kubernetes/admin.conf` is still absent
 
 ---
@@ -264,7 +265,7 @@ Access to services:
 - [x] Validate node-local installation of Kubernetes bootstrap packages from the GitLab fallback source
 - [x] Perform a manual `kubeadm` bootstrap and record the runbook
 - [x] Validate worker joins and Cilium `1.19.3` until all nodes become `Ready`
-- [ ] Rebuild the guests with OpenTofu after the manual training pass
+- [x] Rebuild the guests with OpenTofu after the manual training pass
 
 ### Phase 3 — Kubernetes Automation
 - [ ] Keep Kubernetes `1.35` in the Ansible automation until an explicit upgrade step is planned

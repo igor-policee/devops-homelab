@@ -76,9 +76,9 @@
       - /etc/apt/sources.list.d/kubernetes.list.disabled
   when: kubernetes_upstream_repo.stat.exists
 
-# kubelet is expected to restart until kubeadm writes its config; keep the service enabled anyway.
-- name: Ensure kubelet service is enabled and started
+# Keep kubelet installed and enabled, but let kubeadm own the first clean start on fresh nodes.
+- name: Ensure kubelet service is enabled but stopped before kubeadm bootstrap
   ansible.builtin.systemd_service:
     name: kubelet
     enabled: true
-    state: started
+    state: stopped
