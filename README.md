@@ -232,6 +232,7 @@ Automation notes:
 - the final Cilium play now runs with `connection: local` on the Ansible control node instead of SSHing back into `homelab-ubuntu`
 - after recreating guests with `tofu destroy` and `tofu apply`, refresh or accept the new SSH host keys before the first Ansible run
 - the package bootstrap role keeps `kubelet` enabled but stopped on fresh nodes so `kubeadm init` and `kubeadm join` own the first clean `kubelet` start
+- after `kubeadm init` and `kubeadm join`, the automation must explicitly return `kubelet` to `started` so node readiness and CNI pods can progress
 - if a previous `kubeadm init` attempt left partial control-plane state behind, the automation now runs `kubeadm reset -f` automatically before retrying `kubeadm init` while `/etc/kubernetes/admin.conf` is still absent
 
 ---

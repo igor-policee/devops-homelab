@@ -223,14 +223,17 @@ What is already done:
 - the final Cilium installation play now runs locally on the Ansible control node instead of using SSH back into `homelab-ubuntu`
 - the final localhost play now installs `kubectl` from the GitLab fallback package source and installs Helm from the official Helm binary release when they are missing or out of the validated version
 - the localhost operator-tools role now uses explicit `ansible_facts[...]` lookups for architecture detection, avoiding another Ansible injected-fact deprecation warning
+- the latest automation failure showed that `kubelet` could remain stopped after `kubeadm init` / `kubeadm join`, leaving all nodes `NotReady` and Cilium pods stuck in `Pending`
+- the kubeadm roles now explicitly return `kubelet` to `started` after control-plane bootstrap and worker join
 
 What needs to happen next:
-1. Install Ansible on `homelab-ubuntu` so the new automation playbook can run from the documented execution point
-2. Run `ansible/playbooks/kubernetes-bootstrap.yml` with `GITLAB_TOKEN` exported and `-K` enabled
+1. Sync the updated kubeadm roles to `~/devops-homelab` on `homelab-ubuntu`
+2. Re-run `ansible/playbooks/kubernetes-bootstrap.yml` with `GITLAB_TOKEN` exported and `-K` enabled
 3. Validate the automated cluster bootstrap end-to-end with:
    - `kubectl get nodes -o wide`
    - `kubectl get pods -A`
    - `helm list -n kube-system`
+   - `for host in control-plane worker-1 worker-2; do ssh "$host" "sudo systemctl is-active kubelet"; done`
    - confirm that the localhost play installs or reuses `kubectl` and `helm` correctly on `homelab-ubuntu`
    - confirm that the localhost operator-tools role runs without additional Ansible injected-fact deprecation warnings
    - confirm that the final Cilium play no longer depends on SSH host-key state for `homelab-ubuntu`

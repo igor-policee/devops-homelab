@@ -80,11 +80,13 @@ Consequences:
 Decision:
 - install and enable `kubelet` during package bootstrap, but keep it stopped on fresh nodes
 - stop `kubelet` explicitly before `kubeadm init` and `kubeadm join` when the node is not yet initialized
+- after a successful `kubeadm init` or `kubeadm join`, explicitly return `kubelet` to `started`
 - use `kubeadm reset -f` only for actual partial control-plane state, identified by kubeadm-managed files rather than a busy `10250` port alone
 
 Reason:
 - on a fresh node, a prematurely started `kubelet` can already occupy port `10250` before `kubeadm init`
 - the first clean `kubelet` start should be coordinated by `kubeadm`, not by the package-install phase
+- the first automation run showed that relying on implicit kubelet recovery after bootstrap was too weak and could leave all nodes `NotReady`
 - treating any busy `10250` socket as partial kubeadm state was too broad for first-run automation
 
 Alternatives considered:
@@ -93,5 +95,6 @@ Alternatives considered:
 
 Consequences:
 - the first automation pass should no longer fail preflight on fresh nodes because `kubelet` started too early
+- the bootstrap workflow must verify that `kubelet` is running again before relying on node readiness or CNI installation
 - control-plane recovery remains automated for interrupted `kubeadm init` attempts that leave kubeadm-managed files behind
 - bootstrap troubleshooting should distinguish between fresh-node sequencing issues and true partial kubeadm state

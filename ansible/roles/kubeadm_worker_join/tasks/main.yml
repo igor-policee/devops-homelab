@@ -17,3 +17,10 @@
   ansible.builtin.shell: "{{ hostvars[groups['control_plane'][0]].kubernetes_join_command }}"
   when: not kubeadm_worker_conf.stat.exists
   no_log: true
+
+# Keep kubelet running after the join because the package role intentionally stopped it on fresh nodes.
+- name: Ensure kubelet service is enabled and running after worker join
+  ansible.builtin.systemd_service:
+    name: kubelet
+    enabled: true
+    state: started

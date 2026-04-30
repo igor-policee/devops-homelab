@@ -74,6 +74,13 @@
       - "--pod-network-cidr={{ kubernetes_pod_network_cidr }}"
   when: not kubeadm_admin_conf.stat.exists
 
+# The automation stops kubelet before bootstrap, so bring it back explicitly after kubeadm takes over.
+- name: Ensure kubelet service is enabled and running after control-plane bootstrap
+  ansible.builtin.systemd_service:
+    name: kubelet
+    enabled: true
+    state: started
+
 # Always refresh the join command so worker re-joins can be recovered without a manual SSH step.
 - name: Generate worker join command
   ansible.builtin.command: kubeadm token create --print-join-command
