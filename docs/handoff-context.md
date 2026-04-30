@@ -227,30 +227,29 @@ What is already done:
 - the kubeadm roles now explicitly return `kubelet` to `started` after control-plane bootstrap and worker join
 - the first full bootstrap run now succeeds end-to-end, and the remaining idempotency issue was narrowed to the localhost Cilium task reporting `changed` on every rerun because it used `helm upgrade --install` through `command`
 - the Cilium role now uses `kubernetes.core.helm` so the second successful run can remain idempotent when the release is already converged
+- the full automation validation path was completed successfully:
+  - `tofu destroy`
+  - `tofu apply`
+  - first `ansible-playbook -K playbooks/kubernetes-bootstrap.yml`
+  - second `ansible-playbook -K playbooks/kubernetes-bootstrap.yml`
+- the second Ansible bootstrap run completed with `changed=0` on `control-plane`, `worker-1`, `worker-2`, and `localhost`
+- the Kubernetes automation phase is now validated end-to-end and idempotent for the current documented stack and versions
 
 What needs to happen next:
-1. Sync the updated Cilium role to `~/devops-homelab` on `homelab-ubuntu`
-2. Re-run `ansible/playbooks/kubernetes-bootstrap.yml` with `GITLAB_TOKEN` exported and `-K` enabled
-3. Confirm the second run stays idempotent with `changed=0` on `localhost` as well as the guest nodes
-4. Validate the automated cluster bootstrap end-to-end with:
-   - `kubectl get nodes -o wide`
-   - `kubectl get pods -A`
-   - `helm list -n kube-system`
-   - `for host in control-plane worker-1 worker-2; do ssh "$host" "sudo systemctl is-active kubelet"; done`
-   - confirm that the localhost play installs or reuses `kubectl` and `helm` correctly on `homelab-ubuntu`
-   - confirm that the localhost operator-tools role runs without additional Ansible injected-fact deprecation warnings
-   - confirm that the final Cilium play no longer depends on SSH host-key state for `homelab-ubuntu`
-   - confirm that fresh nodes no longer hit `Port-10250` during the first `kubeadm init`
-   - confirm that control-plane recovery is still clean if a previous failed `kubeadm init` left partial kubeadm state behind
-5. Reproduce the validated control-plane arguments in automation:
-   - `--apiserver-advertise-address=192.168.122.10`
-   - `--pod-network-cidr=10.244.0.0/16`
-6. Reproduce the validated Cilium installation in automation with chart version `1.19.3`
-7. Decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate change
+1. Treat the Kubernetes automation phase as the new baseline and avoid reopening bootstrap fixes unless a fresh repro appears
+2. Choose the next project phase after bootstrap validation:
+   - Cilium Gateway API and ingress routing
+   - ArgoCD and GitOps bootstrap
+   - SOPS + age secret management
+   - observability stack
+3. If networking work starts next, decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate documented change
+4. Keep using `homelab-ubuntu` as the execution point for OpenTofu, `kubectl`, Helm, and the Ansible localhost operator workflow
 
 ## Repository State
 
 Recent relevant commits:
+- `c71daa1` — `fix(ansible): keep cilium install idempotent`
+- `c5a06b1` — `fix(ansible): restore kubelet after kubeadm bootstrap`
 - `88b2532` — `docs: record manual package bootstrap progress`
 - `169505b` — `docs: define gitlab fallback package source`
 - `eae1d37` — `docs: pin kubernetes to 1.35`
@@ -264,9 +263,18 @@ Important older infrastructure commits:
 - `fff267b` — `ansible: manage default libvirt storage pool`
 - `f83ee9e` — `ansible: pin libvirt role to system URI`
 
-Current local worktree notes:
-- `ansible/inventory/hosts.yml` also has a local modification and should be reviewed separately before any commit
-- `kubeadm-join-token` is an untracked local artifact from the manual pass and should not be committed
-- the host copy at `~/devops-homelab` should still be treated as the operational copy for current OpenTofu and VM-side bootstrap work
-- the local inventory change now includes the Kubernetes guest group plus the dedicated VM SSH key path
-- the newly added automation files are now present in the host-side operational copy because they were synced manually
+Validation status:
+- validated:
+  - `tofu destroy`
+  - `tofu apply`
+  - first Kubernetes automation run
+  - second Kubernetes automation run with idempotent `changed=0` results
+- not yet validated in this repository phase:
+  - Cilium Gateway API
+  - ingress and service exposure design
+  - ArgoCD bootstrap
+  - SOPS + age workflow
+  - observability stack
+
+Operational note:
+- the host copy at `~/devops-homelab` remains the operational execution point for current OpenTofu, `kubectl`, Helm, and VM-side bootstrap work

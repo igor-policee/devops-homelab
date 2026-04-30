@@ -235,6 +235,11 @@ Automation notes:
 - the package bootstrap role keeps `kubelet` enabled but stopped on fresh nodes so `kubeadm init` and `kubeadm join` own the first clean `kubelet` start
 - after `kubeadm init` and `kubeadm join`, the automation must explicitly return `kubelet` to `started` so node readiness and CNI pods can progress
 - if a previous `kubeadm init` attempt left partial control-plane state behind, the automation now runs `kubeadm reset -f` automatically before retrying `kubeadm init` while `/etc/kubernetes/admin.conf` is still absent
+- the full validation path now succeeds end-to-end:
+  - `tofu destroy`
+  - `tofu apply`
+  - first `ansible-playbook -K playbooks/kubernetes-bootstrap.yml`
+  - second `ansible-playbook -K playbooks/kubernetes-bootstrap.yml` with `changed=0` on all hosts
 
 ---
 
@@ -274,13 +279,15 @@ Access to services:
 - [x] Rebuild the guests with OpenTofu after the manual training pass
 
 ### Phase 3 — Kubernetes Automation
-- [ ] Keep Kubernetes `1.35` in the Ansible automation until an explicit upgrade step is planned
-- [ ] Support an alternate Kubernetes package source in Ansible instead of depending only on `pkgs.k8s.io`
-- [ ] Download Kubernetes bootstrap packages from the GitLab fallback source in Ansible
-- [ ] Install containerd and kubeadm with Ansible
-- [ ] Bring up the control plane with kubeadm through Ansible
-- [ ] Add worker nodes through Ansible
-- [ ] Install CNI (Cilium) with Helm
+- [x] Keep Kubernetes `1.35` in the Ansible automation until an explicit upgrade step is planned
+- [x] Support an alternate Kubernetes package source in Ansible instead of depending only on `pkgs.k8s.io`
+- [x] Download Kubernetes bootstrap packages from the GitLab fallback source in Ansible
+- [x] Install containerd and kubeadm with Ansible
+- [x] Bring up the control plane with kubeadm through Ansible
+- [x] Add worker nodes through Ansible
+- [x] Install CNI (Cilium) with Helm
+- [x] Validate a full `tofu destroy -> tofu apply -> ansible-playbook` cycle
+- [x] Confirm the second Ansible bootstrap run is idempotent
 
 ### Phase 4 — Networking
 - [ ] Configure Cilium Gateway API
