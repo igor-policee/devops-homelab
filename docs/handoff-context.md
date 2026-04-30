@@ -270,24 +270,6 @@ What needs to happen next:
 5. If networking work starts next, decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate documented change
 6. Keep using `homelab-ubuntu` as the execution point for OpenTofu, `kubectl`, Helm, and the Ansible localhost operator workflow
 
-## Repository State
-
-Recent relevant commits:
-- `c71daa1` — `fix(ansible): keep cilium install idempotent`
-- `c5a06b1` — `fix(ansible): restore kubelet after kubeadm bootstrap`
-- `88b2532` — `docs: record manual package bootstrap progress`
-- `169505b` — `docs: define gitlab fallback package source`
-- `eae1d37` — `docs: pin kubernetes to 1.35`
-- `5e2548b` — `docs: define manual kubeadm training phase`
-- `eab3f9c` — `docs: mark vm provisioning complete`
-
-Important older infrastructure commits:
-- `632226c` — `terraform: add libvirt vm provisioning stack`
-- `3724e30` — `terraform: increase vm disk sizes to 100gb`
-- `c353220` — `chore: replace terraform references with opentofu`
-- `fff267b` — `ansible: manage default libvirt storage pool`
-- `f83ee9e` — `ansible: pin libvirt role to system URI`
-
 Validation status:
 - validated:
   - `tofu destroy`
