@@ -1,0 +1,27 @@
+---
+# Keep all bootstrap participants aligned with the same validated Kubernetes release.
+kubernetes_version: v1.35.4
+
+# Reuse the validated fallback package source for both node bootstrap and operator tooling.
+kubernetes_gitlab_api: https://gitlab.com/api/v4
+kubernetes_gitlab_project_id: "81772984"
+kubernetes_gitlab_package_name: kubernetes-debs
+kubernetes_gitlab_package_version: v1.35.4
+
+# Keep the exact artifact names centralized so local and remote roles stay in sync.
+kubernetes_bootstrap_artifacts:
+  - cri-tools_1.35.0-1.1_amd64.deb
+  - kubeadm_1.35.4-1.1_amd64.deb
+  - kubectl_1.35.4-1.1_amd64.deb
+  - kubelet_1.35.4-1.1_amd64.deb
+  - kubernetes-cni_1.8.0-1.1_amd64.deb
+
+# Install the validated Cilium chart version from the host-side operator shell.
+cilium_chart_version: 1.19.3
+kubernetes_operator_kubeconfig_path: "{{ lookup('env', 'HOME') }}/.kube/config"
+
+# Keep the operator host on the same kubectl build that was validated for the cluster phase.
+kubernetes_operator_kubectl_artifact: kubectl_1.35.4-1.1_amd64.deb
+
+# Reuse the Helm version already validated manually on the operator host.
+helm_cli_version: v3.20.2

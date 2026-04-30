@@ -1,22 +1,7 @@
 ---
-# Keep the first automation pass aligned with the validated manual bootstrap.
-kubernetes_version: v1.35.4
+# Keep node-only bootstrap settings scoped to the Kubernetes guests.
 kubernetes_pod_network_cidr: 10.244.0.0/16
 kubernetes_control_plane_advertise_address: 192.168.122.10
-
-# Reuse the validated fallback package source for bootstrap artifacts.
-kubernetes_gitlab_api: https://gitlab.com/api/v4
-kubernetes_gitlab_project_id: "81772984"
-kubernetes_gitlab_package_name: kubernetes-debs
-kubernetes_gitlab_package_version: v1.35.4
-
-# Install the exact package set validated during the manual phase.
-kubernetes_bootstrap_artifacts:
-  - cri-tools_1.35.0-1.1_amd64.deb
-  - kubeadm_1.35.4-1.1_amd64.deb
-  - kubectl_1.35.4-1.1_amd64.deb
-  - kubelet_1.35.4-1.1_amd64.deb
-  - kubernetes-cni_1.8.0-1.1_amd64.deb
 
 # Preserve the same package hold policy to avoid accidental drift from the validated build.
 kubernetes_held_packages:
@@ -28,7 +13,3 @@ kubernetes_held_packages:
 
 # Store downloaded bootstrap artifacts under the guest operator account for easier inspection.
 kubernetes_bootstrap_download_dir: "/home/{{ ansible_user }}/k8s-bootstrap/{{ kubernetes_gitlab_package_version }}"
-
-# Install the validated Cilium chart version from the host-side operator shell.
-cilium_chart_version: 1.19.3
-kubernetes_operator_kubeconfig_path: "{{ lookup('env', 'HOME') }}/.kube/config"

@@ -226,6 +226,9 @@ Automation notes:
 - the first automation pass keeps Kubernetes pinned to `v1.35.4`, uses `10.244.0.0/16` as the pod CIDR, and installs Cilium `1.19.3`
 - the playbook expects `GITLAB_TOKEN` on the Ansible control node and never stores the token in the repository
 - `homelab-ubuntu` currently remains the intended execution point because it can reach the `192.168.122.0/24` guest network directly
+- the final localhost automation play now installs operator tooling as needed:
+  - `kubectl` from the validated GitLab fallback package source
+  - `helm` from the official Helm binary release
 - the final Cilium play now runs with `connection: local` on the Ansible control node instead of SSHing back into `homelab-ubuntu`
 - after recreating guests with `tofu destroy` and `tofu apply`, refresh or accept the new SSH host keys before the first Ansible run
 - the package bootstrap role keeps `kubelet` enabled but stopped on fresh nodes so `kubeadm init` and `kubeadm join` own the first clean `kubelet` start

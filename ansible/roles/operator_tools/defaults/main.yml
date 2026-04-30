@@ -1,0 +1,13 @@
+---
+# Keep the operator-host bootstrap directory separate from the guest-side package cache.
+operator_tools_download_dir: "/tmp/k8s-operator-tools/{{ kubernetes_gitlab_package_version }}"
+
+# Install only the minimum local packages required to fetch and unpack operator tooling.
+operator_tools_packages:
+  - curl
+  - tar
+
+# Map common Linux architectures to Helm's published release names.
+operator_tools_helm_arch_map:
+  x86_64: amd64
+  aarch64: arm64

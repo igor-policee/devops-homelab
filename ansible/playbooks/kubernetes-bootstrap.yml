@@ -32,5 +32,7 @@
   connection: local
   become: false
   roles:
+    # Ensure the operator shell has the required CLI tools before chart installation.
+    - role: operator_tools
     # Install the validated Cilium chart version directly from the operator shell.
     - role: cilium_install
