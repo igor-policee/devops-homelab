@@ -247,13 +247,18 @@ What needs to happen next:
    - practice with technologies that are relevant to real work
    - validate ideas that could later transfer into enterprise environments
    - produce artifacts that improve the public GitHub story of the project
-3. Choose the next project phase after bootstrap validation:
-   - Cilium Gateway API and ingress routing
-   - ArgoCD and GitOps bootstrap
-   - SOPS + age secret management
-   - observability stack
-4. If networking work starts next, decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate documented change
-5. Keep using `homelab-ubuntu` as the execution point for OpenTofu, `kubectl`, Helm, and the Ansible localhost operator workflow
+3. Use the updated roadmap framing for the next phases:
+   - service delivery baseline
+   - delivery and secrets
+   - observability
+   - operations and recovery
+   - remote access
+4. The most likely next concrete step is the service delivery baseline:
+   - Cilium Gateway API
+   - ingress routing
+   - service exposure model
+5. If networking work starts next, decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate documented change
+6. Keep using `homelab-ubuntu` as the execution point for OpenTofu, `kubectl`, Helm, and the Ansible localhost operator workflow
 
 ## Repository State
 
@@ -280,11 +285,12 @@ Validation status:
   - first Kubernetes automation run
   - second Kubernetes automation run with idempotent `changed=0` results
 - not yet validated in this repository phase:
-  - Cilium Gateway API
-  - ingress and service exposure design
-  - ArgoCD bootstrap
+  - service delivery baseline
+  - ArgoCD bootstrap and application delivery pattern
   - SOPS + age workflow
   - observability stack
+  - day-2 operations and recovery runbooks
+  - remote access through Tailscale
 
 Operational note:
 - the host copy at `~/devops-homelab` remains the operational execution point for current OpenTofu, `kubectl`, Helm, and VM-side bootstrap work

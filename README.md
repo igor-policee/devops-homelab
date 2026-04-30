@@ -301,23 +301,31 @@ Access to services:
 - [x] Validate a full `tofu destroy -> tofu apply -> ansible-playbook` cycle
 - [x] Confirm the second Ansible bootstrap run is idempotent
 
-### Phase 4 — Networking
+### Phase 4 — Service Delivery Baseline
 - [ ] Configure Cilium Gateway API
 - [ ] Ingress routing
-- [ ] Service exposure (NodePort / internal)
+- [ ] Define the service exposure model for the lab
+- [ ] Decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate documented change
 
-### Phase 5 — DevOps Tools
-- [ ] Helm
+### Phase 5 — Delivery and Secrets
 - [ ] GitOps with ArgoCD
+- [ ] Define a documented application deployment pattern for the cluster
 - [ ] Secrets management with SOPS + age
 - [ ] CI/CD with GitHub Actions
 
 ### Phase 6 — Observability
-- [ ] Prometheus
-- [ ] Grafana
-- [ ] Loki
+- [ ] Establish a minimal observability baseline
+- [ ] Deploy Prometheus
+- [ ] Deploy Grafana
+- [ ] Deploy Loki
 
-### Phase 7 — Remote Access
+### Phase 7 — Operations and Recovery
+- [ ] Document day-2 operational runbooks
+- [ ] Document upgrade procedures for Kubernetes and key cluster components
+- [ ] Document recovery flows for common failures such as node recreation, kubelet issues, and CNI reconciliation
+- [ ] Define a baseline security and network policy approach for the cluster
+
+### Phase 8 — Remote Access
 - [ ] Configure Tailscale for access from external networks
 
 ---
