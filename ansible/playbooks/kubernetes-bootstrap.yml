@@ -28,8 +28,9 @@
     - role: kubeadm_worker_join
 
 - name: Install Cilium from the operator host
-  hosts: hypervisors
+  hosts: localhost
+  connection: local
   become: false
   roles:
-    # Install the validated Cilium chart version using the host-side kubeconfig.
+    # Install the validated Cilium chart version directly from the operator shell.
     - role: cilium_install
