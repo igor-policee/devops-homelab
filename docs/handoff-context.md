@@ -240,6 +240,16 @@ What is already done:
   - second `ansible-playbook -K playbooks/kubernetes-bootstrap.yml`
 - the second Ansible bootstrap run completed with `changed=0` on `control-plane`, `worker-1`, `worker-2`, and `localhost`
 - the Kubernetes automation phase is now validated end-to-end and idempotent for the current documented stack and versions
+- the current cluster configuration was validated across a full physical host reboot
+- after the reboot:
+  - all three libvirt guests returned in `running` state
+  - the `default` libvirt network returned `Active: yes` and `Autostart: yes`
+  - the `default` libvirt storage pool returned `State: running` and `Autostart: yes`
+  - `control-plane`, `worker-1`, and `worker-2` returned as `Ready`
+  - all `kube-system` Pods returned to `Running`
+  - the `cilium` Helm release remained `deployed`
+  - `containerd` and `kubelet` returned as `active` on all nodes
+- the reboot scenario is now a validated day-2 behavior for the current single-host cluster baseline
 
 What needs to happen next:
 1. Treat the Kubernetes automation phase as the new baseline and avoid reopening bootstrap fixes unless a fresh repro appears
@@ -284,6 +294,7 @@ Validation status:
   - `tofu apply`
   - first Kubernetes automation run
   - second Kubernetes automation run with idempotent `changed=0` results
+  - physical host reboot with libvirt guest autostart and Kubernetes cluster recovery
 - not yet validated in this repository phase:
   - service delivery baseline
   - ArgoCD bootstrap and application delivery pattern

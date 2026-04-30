@@ -252,6 +252,12 @@ Automation notes:
   - `tofu apply`
   - first `ansible-playbook -K playbooks/kubernetes-bootstrap.yml`
   - second `ansible-playbook -K playbooks/kubernetes-bootstrap.yml` with `changed=0` on all hosts
+- the current cluster configuration was also validated across a full physical host reboot:
+  - libvirt guests returned in `running` state
+  - the `default` libvirt network and storage pool returned as `active`/`running` with `Autostart: yes`
+  - `control-plane`, `worker-1`, and `worker-2` returned as `Ready`
+  - `containerd` and `kubelet` returned as `active` on all nodes
+  - the Cilium Helm release remained `deployed`
 
 ---
 
