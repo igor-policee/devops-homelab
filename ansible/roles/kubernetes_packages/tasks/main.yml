@@ -76,9 +76,16 @@
       - /etc/apt/sources.list.d/kubernetes.list.disabled
   when: kubernetes_upstream_repo.stat.exists
 
+# Distinguish fresh nodes from already bootstrapped nodes before touching kubelet state.
+- name: Check whether kubelet bootstrap config already exists
+  ansible.builtin.stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: kubernetes_kubelet_conf
+
 # Keep kubelet installed and enabled, but let kubeadm own the first clean start on fresh nodes.
 - name: Ensure kubelet service is enabled but stopped before kubeadm bootstrap
   ansible.builtin.systemd_service:
     name: kubelet
     enabled: true
     state: stopped
+  when: not kubernetes_kubelet_conf.stat.exists
