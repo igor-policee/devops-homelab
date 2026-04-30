@@ -1,0 +1,3 @@
+---
+# Automatically recover from a failed kubeadm init on a fresh control-plane node.
+kubeadm_control_plane_auto_reset_partial_state: true

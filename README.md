@@ -227,6 +227,7 @@ Automation notes:
 - the playbook expects `GITLAB_TOKEN` on the Ansible control node and never stores the token in the repository
 - `homelab-ubuntu` currently remains the intended execution point because it can reach the `192.168.122.0/24` guest network directly
 - after recreating guests with `tofu destroy` and `tofu apply`, refresh or accept the new SSH host keys before the first Ansible run
+- if a previous `kubeadm init` attempt left partial control-plane state behind, the automation now runs `kubeadm reset -f` automatically before retrying `kubeadm init` while `/etc/kubernetes/admin.conf` is still absent
 
 ---
 

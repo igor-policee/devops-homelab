@@ -218,6 +218,7 @@ What is already done:
 - `cloud-init status --wait` completed successfully on all recreated guests
 - the first Ansible automation scaffold for the Kubernetes phase was added locally and passed `ansible-playbook --syntax-check`
 - the updated `ansible/` tree, `README.md`, and `docs/handoff-context.md` were synced to the operational copy at `~/devops-homelab`
+- the control-plane automation now auto-recovers from partial failed `kubeadm init` attempts by running `kubeadm reset -f` before retrying `kubeadm init` while `admin.conf` is still absent
 
 What needs to happen next:
 1. Install Ansible on `homelab-ubuntu` so the new automation playbook can run from the documented execution point
@@ -226,6 +227,7 @@ What needs to happen next:
    - `kubectl get nodes -o wide`
    - `kubectl get pods -A`
    - `helm list -n kube-system`
+   - confirm that control-plane recovery is clean if a previous failed `kubeadm init` left `kubelet` listening on `:10250`
 4. Reproduce the validated control-plane arguments in automation:
    - `--apiserver-advertise-address=192.168.122.10`
    - `--pod-network-cidr=10.244.0.0/16`

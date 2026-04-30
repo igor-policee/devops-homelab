@@ -5,6 +5,66 @@
     path: /etc/kubernetes/admin.conf
   register: kubeadm_admin_conf
 
+# Detect worker-side kubelet state that would block a clean kubeadm init retry.
+- name: Check whether kubelet client config already exists
+  ansible.builtin.stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: kubeadm_kubelet_conf
+
+# Detect leftover static Pod manifests from a partial kubeadm init attempt.
+- name: Check whether kubeadm manifests directory exists
+  ansible.builtin.stat:
+    path: /etc/kubernetes/manifests
+  register: kubeadm_manifests_dir
+
+# kubelet can keep port 10250 busy after a failed init, so detect that condition explicitly.
+- name: Check whether kubelet secure port 10250 is in use
+  ansible.builtin.shell: "ss -ltnH 'sport = :10250'"
+  register: kubeadm_port_10250
+  changed_when: false
+  failed_when: false
+
+# Treat leftover kubelet config, manifests, or a busy 10250 socket as partial bootstrap state.
+- name: Derive whether the control plane has partial kubeadm state
+  ansible.builtin.set_fact:
+    kubeadm_partial_state_detected: >-
+      {{
+        (not kubeadm_admin_conf.stat.exists) and (
+          kubeadm_kubelet_conf.stat.exists or
+          kubeadm_manifests_dir.stat.exists or
+          (kubeadm_port_10250.stdout | trim | length > 0)
+        )
+      }}
+
+# Recover automatically from interrupted kubeadm init attempts on fresh automation targets.
+- name: Reset partial kubeadm state before retrying init
+  ansible.builtin.command:
+    argv:
+      - kubeadm
+      - reset
+      - -f
+  when:
+    - kubeadm_partial_state_detected
+    - kubeadm_control_plane_auto_reset_partial_state
+
+# Refresh kubelet after kubeadm reset so preflight checks see a clean baseline.
+- name: Restart kubelet after resetting partial kubeadm state
+  ansible.builtin.systemd_service:
+    name: kubelet
+    state: restarted
+  when:
+    - kubeadm_partial_state_detected
+    - kubeadm_control_plane_auto_reset_partial_state
+
+# Fail with a clear message when partial state is detected but auto-reset is disabled.
+- name: Assert that no unrecovered kubeadm partial state remains
+  ansible.builtin.assert:
+    that:
+      - not kubeadm_partial_state_detected or kubeadm_control_plane_auto_reset_partial_state
+    fail_msg: >-
+      Partial kubeadm state was detected on the control-plane node while /etc/kubernetes/admin.conf
+      is still absent. Re-enable automatic reset or run 'kubeadm reset -f' manually before retrying.
+
 # Reproduce the validated kubeadm init arguments from the manual bootstrap.
 - name: Initialize Kubernetes control plane
   ansible.builtin.command:
