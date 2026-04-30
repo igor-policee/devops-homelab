@@ -1,0 +1,84 @@
+---
+# Require an explicit token so automation never hardcodes package-registry credentials.
+- name: Assert GitLab token is provided
+  ansible.builtin.assert:
+    that:
+      - lookup('ansible.builtin.env', 'GITLAB_TOKEN') | length > 0
+    fail_msg: >-
+      Export GITLAB_TOKEN on the Ansible control node before running the Kubernetes package bootstrap.
+
+# Preserve the downloaded artifacts on each node so package provenance remains inspectable.
+- name: Ensure bootstrap download directory exists
+  ansible.builtin.file:
+    path: "{{ kubernetes_bootstrap_download_dir }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+
+# Download the checksum manifest first so the payload set can be verified before installation.
+- name: Download bootstrap checksum manifest
+  ansible.builtin.get_url:
+    url: >-
+      {{ kubernetes_gitlab_api }}/projects/{{ kubernetes_gitlab_project_id }}/packages/generic/{{
+      kubernetes_gitlab_package_name }}/{{ kubernetes_gitlab_package_version }}/SHA256SUMS
+    dest: "{{ kubernetes_bootstrap_download_dir }}/SHA256SUMS"
+    mode: "0644"
+    headers:
+      PRIVATE-TOKEN: "{{ lookup('ansible.builtin.env', 'GITLAB_TOKEN') }}"
+  no_log: true
+
+# Download the exact Debian artifacts that were validated in the manual phase.
+- name: Download Kubernetes bootstrap artifacts
+  ansible.builtin.get_url:
+    url: >-
+      {{ kubernetes_gitlab_api }}/projects/{{ kubernetes_gitlab_project_id }}/packages/generic/{{
+      kubernetes_gitlab_package_name }}/{{ kubernetes_gitlab_package_version }}/{{ item }}
+    dest: "{{ kubernetes_bootstrap_download_dir }}/{{ item }}"
+    mode: "0644"
+    headers:
+      PRIVATE-TOKEN: "{{ lookup('ansible.builtin.env', 'GITLAB_TOKEN') }}"
+  loop: "{{ kubernetes_bootstrap_artifacts }}"
+  no_log: true
+
+# Verify the downloaded package set before touching system packages.
+- name: Verify bootstrap artifact checksums
+  ansible.builtin.command: sha256sum -c SHA256SUMS
+  args:
+    chdir: "{{ kubernetes_bootstrap_download_dir }}"
+  changed_when: false
+
+# Install the local Debian payloads instead of depending on direct pkgs.k8s.io package downloads.
+- name: Install Kubernetes bootstrap packages from local artifacts
+  ansible.builtin.apt:
+    deb: "{{ kubernetes_bootstrap_download_dir }}/{{ item }}"
+    state: present
+  loop: "{{ kubernetes_bootstrap_install_order }}"
+
+# Freeze the validated package set so the first automation pass does not drift silently.
+- name: Hold validated Kubernetes packages
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop: "{{ kubernetes_held_packages }}"
+
+# Disable the upstream repository after fallback installation to keep the package source explicit.
+- name: Check whether upstream Kubernetes apt source exists
+  ansible.builtin.stat:
+    path: /etc/apt/sources.list.d/kubernetes.list
+  register: kubernetes_upstream_repo
+
+- name: Disable upstream Kubernetes apt source
+  ansible.builtin.command:
+    argv:
+      - mv
+      - /etc/apt/sources.list.d/kubernetes.list
+      - /etc/apt/sources.list.d/kubernetes.list.disabled
+  when: kubernetes_upstream_repo.stat.exists
+
+# kubelet is expected to restart until kubeadm writes its config; keep the service enabled anyway.
+- name: Ensure kubelet service is enabled and started
+  ansible.builtin.systemd_service:
+    name: kubelet
+    enabled: true
+    state: started

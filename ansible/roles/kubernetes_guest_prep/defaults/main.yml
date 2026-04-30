@@ -1,0 +1,9 @@
+---
+# Keep node preparation limited to the packages validated during the manual run.
+kubernetes_guest_prep_packages:
+  - containerd
+
+# Persist the kernel module set required for bridged Kubernetes networking.
+kubernetes_guest_prep_modules:
+  - overlay
+  - br_netfilter

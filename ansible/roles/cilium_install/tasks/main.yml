@@ -1,0 +1,23 @@
+---
+# Fail early if the operator host lacks Helm, because this role intentionally reuses the validated Helm workflow.
+- name: Verify Helm is available on the operator host
+  ansible.builtin.command: helm version --short
+  changed_when: false
+
+# Install or reconcile the validated Cilium chart version from the host-side kubeconfig.
+- name: Install Cilium chart
+  ansible.builtin.command:
+    argv:
+      - helm
+      - upgrade
+      - --install
+      - cilium
+      - oci://quay.io/cilium/charts/cilium
+      - --version
+      - "{{ cilium_chart_version }}"
+      - --namespace
+      - kube-system
+      - --create-namespace
+      - --wait
+  environment:
+    KUBECONFIG: "{{ kubernetes_operator_kubeconfig_path }}"

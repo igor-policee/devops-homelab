@@ -1,0 +1,12 @@
+---
+# Skip kubeadm join on reruns once the worker already has a kubelet client config.
+- name: Check whether the worker has already joined the cluster
+  ansible.builtin.stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: kubeadm_worker_conf
+
+# Use the token generated on the control plane so worker bootstrap stays fully automated.
+- name: Join worker to the Kubernetes cluster
+  ansible.builtin.shell: "{{ hostvars[groups['control_plane'][0]].kubernetes_join_command }}"
+  when: not kubeadm_worker_conf.stat.exists
+  no_log: true

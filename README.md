@@ -207,6 +207,27 @@ Notes:
 - The manual Kubernetes training pass should be performed from `homelab-ubuntu`, because that host can reach the `192.168.122.0/24` libvirt guest network directly.
 - After `kubeadm init`, copy `/etc/kubernetes/admin.conf` from `control-plane` to `~/.kube/config` on `homelab-ubuntu` and use that host as the main `kubectl` execution point for the manual phase.
 
+Run the first Ansible Kubernetes automation pass from `homelab-ubuntu` after a fresh `tofu apply`:
+
+```bash
+cd ~/devops-homelab/ansible
+export GITLAB_TOKEN='YOUR_TOKEN_HERE'
+ansible-playbook -K playbooks/kubernetes-bootstrap.yml
+```
+
+Automation notes:
+
+- the Kubernetes automation playbook reproduces the validated manual flow in this order:
+  - guest preparation
+  - package bootstrap from GitLab-hosted `.deb` files
+  - `kubeadm init`
+  - worker join
+  - Cilium install
+- the first automation pass keeps Kubernetes pinned to `v1.35.4`, uses `10.244.0.0/16` as the pod CIDR, and installs Cilium `1.19.3`
+- the playbook expects `GITLAB_TOKEN` on the Ansible control node and never stores the token in the repository
+- `homelab-ubuntu` currently remains the intended execution point because it can reach the `192.168.122.0/24` guest network directly
+- after recreating guests with `tofu destroy` and `tofu apply`, refresh or accept the new SSH host keys before the first Ansible run
+
 ---
 
 ## 🌍 External Access

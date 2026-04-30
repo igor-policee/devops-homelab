@@ -1,0 +1,107 @@
+---
+# Collect service facts so later assertions can fail early on unsupported guest baselines.
+- name: Gather guest service facts
+  ansible.builtin.service_facts:
+
+# The current automation assumes Ubuntu guests managed by systemd, matching the validated nodes.
+- name: Assert the guest uses systemd
+  ansible.builtin.assert:
+    that:
+      - ansible_service_mgr == "systemd"
+    fail_msg: >-
+      Expected a systemd-based guest before applying Kubernetes prerequisites.
+
+# Install the container runtime that was validated during the manual bootstrap.
+- name: Install containerd package
+  ansible.builtin.apt:
+    name: "{{ kubernetes_guest_prep_packages }}"
+    state: present
+    update_cache: true
+
+# Disable active swap immediately because kubeadm requires swap-off nodes.
+- name: Disable active swap
+  ansible.builtin.command: swapoff -a
+  when: ansible_swaptotal_mb | int > 0
+  changed_when: ansible_swaptotal_mb | int > 0
+
+# Comment swap entries so nodes remain kubeadm-compatible after reboot.
+- name: Disable swap persistently in fstab
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*\sswap\s+.*)$'
+    replace: '# \1'
+
+# Persist the kernel module set required by containerd-backed Kubernetes networking.
+- name: Configure required kernel modules
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k8s.conf
+    mode: "0644"
+    content: |
+      overlay
+      br_netfilter
+
+# Load the required kernel modules immediately so sysctl settings can apply cleanly.
+- name: Load required kernel modules
+  ansible.builtin.command: "modprobe {{ item }}"
+  loop: "{{ kubernetes_guest_prep_modules }}"
+  changed_when: false
+
+# Keep bridged traffic inspection and IPv4 forwarding aligned with the validated manual setup.
+- name: Configure Kubernetes sysctls
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-kubernetes-cri.conf
+    mode: "0644"
+    content: |
+      net.bridge.bridge-nf-call-iptables  = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.ipv4.ip_forward                 = 1
+
+# Apply the sysctl profile immediately instead of waiting for a reboot.
+- name: Apply Kubernetes sysctls
+  ansible.builtin.command: sysctl --system
+  changed_when: false
+
+# Create the config directory before generating the default containerd configuration.
+- name: Ensure containerd config directory exists
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+    mode: "0755"
+
+- name: Stat containerd config
+  ansible.builtin.stat:
+    path: /etc/containerd/config.toml
+  register: containerd_config_stat
+
+# Start from the runtime's own default config so later package updates stay compatible.
+- name: Generate default containerd config when missing
+  ansible.builtin.command: containerd config default
+  register: containerd_default_config
+  changed_when: false
+  when: not containerd_config_stat.stat.exists
+
+- name: Write default containerd config when missing
+  ansible.builtin.copy:
+    dest: /etc/containerd/config.toml
+    mode: "0644"
+    content: "{{ containerd_default_config.stdout }}"
+  when: not containerd_config_stat.stat.exists
+  notify: Restart containerd
+
+# Use the systemd cgroup driver because kubeadm on Ubuntu 24.04 was validated with that setting.
+- name: Enable systemd cgroup driver in containerd
+  ansible.builtin.lineinfile:
+    path: /etc/containerd/config.toml
+    regexp: '^\s*SystemdCgroup = '
+    line: "            SystemdCgroup = true"
+  notify: Restart containerd
+
+# Keep the runtime available before kubelet is enabled by later roles.
+- name: Ensure containerd service is enabled and running
+  ansible.builtin.systemd_service:
+    name: containerd
+    enabled: true
+    state: started
+
+- name: Flush containerd restart handler before kubeadm packages are installed
+  ansible.builtin.meta: flush_handlers

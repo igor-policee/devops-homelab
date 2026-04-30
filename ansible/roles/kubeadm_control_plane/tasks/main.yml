@@ -1,0 +1,50 @@
+---
+# Skip kubeadm init on reruns once the control-plane admin config already exists.
+- name: Check whether the control plane is already initialized
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubeadm_admin_conf
+
+# Reproduce the validated kubeadm init arguments from the manual bootstrap.
+- name: Initialize Kubernetes control plane
+  ansible.builtin.command:
+    argv:
+      - kubeadm
+      - init
+      - "--apiserver-advertise-address={{ kubernetes_control_plane_advertise_address }}"
+      - "--pod-network-cidr={{ kubernetes_pod_network_cidr }}"
+  when: not kubeadm_admin_conf.stat.exists
+
+# Always refresh the join command so worker re-joins can be recovered without a manual SSH step.
+- name: Generate worker join command
+  ansible.builtin.command: kubeadm token create --print-join-command
+  register: kubeadm_join_command
+  changed_when: false
+  no_log: true
+
+- name: Publish worker join command for later plays
+  ansible.builtin.set_fact:
+    kubernetes_join_command: "{{ kubeadm_join_command.stdout }}"
+  no_log: true
+
+# Keep host-side kubectl administration aligned with the validated operator workflow.
+- name: Ensure operator kubeconfig directory exists
+  ansible.builtin.file:
+    path: "{{ kubernetes_operator_kubeconfig_path | dirname }}"
+    state: directory
+    mode: "0700"
+  delegate_to: localhost
+  become: false
+
+- name: Read control-plane admin.conf
+  ansible.builtin.slurp:
+    path: /etc/kubernetes/admin.conf
+  register: kubeadm_admin_conf_contents
+
+- name: Write operator kubeconfig on the control node
+  ansible.builtin.copy:
+    dest: "{{ kubernetes_operator_kubeconfig_path }}"
+    content: "{{ kubeadm_admin_conf_contents.content | b64decode }}"
+    mode: "0600"
+  delegate_to: localhost
+  become: false

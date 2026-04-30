@@ -26,6 +26,18 @@ Completed so far:
 - SSH access to all 3 guests was verified with the dedicated VM key and the `homelab` user
 - a baseline Ansible guest-validation playbook now exists at `ansible/playbooks/guest-bootstrap.yml`
 - a full manual Kubernetes bootstrap was completed successfully on the current guests
+- after the manual training pass, the guests were destroyed and recreated successfully with a fresh `tofu apply`
+- the recreated guests were revalidated over SSH at the expected addresses:
+  - `control-plane` -> `192.168.122.10`
+  - `worker-1` -> `192.168.122.11`
+  - `worker-2` -> `192.168.122.12`
+- the repository now contains a first Ansible automation scaffold for the Kubernetes phase:
+  - `ansible/playbooks/kubernetes-bootstrap.yml`
+  - `ansible/roles/kubernetes_guest_prep`
+  - `ansible/roles/kubernetes_packages`
+  - `ansible/roles/kubeadm_control_plane`
+  - `ansible/roles/kubeadm_worker_join`
+  - `ansible/roles/cilium_install`
 - `kubeadm init` was validated on `control-plane` with:
   - `--apiserver-advertise-address=192.168.122.10`
   - `--pod-network-cidr=10.244.0.0/16`
@@ -36,6 +48,7 @@ Completed so far:
 Current access model:
 - Local SSH from home LAN works
 - External remote access via Tailscale is intentionally postponed to the final stage
+- Recreated guests required SSH host-key refresh on `homelab-ubuntu` before new sessions could be established
 
 ## SSH Details
 
@@ -117,6 +130,11 @@ TF_CLI_CONFIG_FILE=$HOME/.config/opentofu/offline.tfrc tofu plan -input=false -n
 TF_CLI_CONFIG_FILE=$HOME/.config/opentofu/offline.tfrc tofu apply
 ```
 
+Current automation-execution caveats on `homelab-ubuntu`:
+- `~/devops-homelab` is an operational copy, not a Git checkout
+- `ansible` is not currently installed there yet
+- `sudo` on `homelab-ubuntu` still requires a password, so future host-side playbook runs should expect `ansible-playbook -K`
+
 ## Roadmap Status
 
 Phase 1 completed:
@@ -194,17 +212,25 @@ What is already done:
   - `worker-2` -> `Ready`
 - Cilium `1.19.3` was installed successfully through Helm from `homelab-ubuntu`
 - `CoreDNS` transitioned from `Pending` before CNI to `Running` after Cilium was installed
+- after the manual pass, `tofu destroy` and a fresh `tofu apply` were completed successfully
+- `virsh -c qemu:///system list --all`, `net-dhcp-leases default`, and `domifaddr` re-confirmed the recreated guests at `.10`, `.11`, and `.12`
+- SSH access to the recreated guests was revalidated from `homelab-ubuntu`
+- `cloud-init status --wait` completed successfully on all recreated guests
+- the first Ansible automation scaffold for the Kubernetes phase was added locally and passed `ansible-playbook --syntax-check`
+- the updated `ansible/` tree, `README.md`, and `docs/handoff-context.md` were synced to the operational copy at `~/devops-homelab`
 
 What needs to happen next:
-1. Recreate the guests with OpenTofu after the completed manual training pass
-2. Keep the Ansible inventory aligned with the confirmed VM addresses for the automation phase
-3. Convert the validated manual workflow into Ansible roles and playbooks
-4. Carry the same package-source, package-hold, and repo-disable behavior into the first Ansible implementation
-5. Reproduce the validated control-plane arguments in automation:
+1. Install Ansible on `homelab-ubuntu` so the new automation playbook can run from the documented execution point
+2. Run `ansible/playbooks/kubernetes-bootstrap.yml` with `GITLAB_TOKEN` exported and `-K` enabled
+3. Validate the automated cluster bootstrap end-to-end with:
+   - `kubectl get nodes -o wide`
+   - `kubectl get pods -A`
+   - `helm list -n kube-system`
+4. Reproduce the validated control-plane arguments in automation:
    - `--apiserver-advertise-address=192.168.122.10`
    - `--pod-network-cidr=10.244.0.0/16`
-6. Reproduce the validated Cilium installation in automation with chart version `1.19.3`
-7. Decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate change
+5. Reproduce the validated Cilium installation in automation with chart version `1.19.3`
+6. Decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate change
 
 ## Repository State
 
@@ -226,3 +252,5 @@ Current local worktree notes:
 - `ansible/inventory/hosts.yml` also has a local modification and should be reviewed separately before any commit
 - `kubeadm-join-token` is an untracked local artifact from the manual pass and should not be committed
 - the host copy at `~/devops-homelab` should still be treated as the operational copy for current OpenTofu and VM-side bootstrap work
+- the local inventory change now includes the Kubernetes guest group plus the dedicated VM SSH key path
+- the newly added automation files are now present in the host-side operational copy because they were synced manually
