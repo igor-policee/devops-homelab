@@ -98,6 +98,11 @@ Planned VM IP assignments:
 - Container runtime: containerd
 - CNI: Cilium
 - kube-proxy: possibly disabled in favor of eBPF
+- Manual bootstrap result for the current training pass:
+  - `kubeadm init` and worker `kubeadm join` were validated successfully on Kubernetes `v1.35.4`
+  - cluster administration from the host is performed on `homelab-ubuntu` with `kubectl`
+  - the validated manual pod CIDR is `10.244.0.0/16`
+  - the validated Cilium chart version is `1.19.3`
 - Bootstrap packaging note:
   - direct access to `pkgs.k8s.io` may be unreliable from the project location
   - Kubernetes package delivery must not depend only on the upstream CDN
@@ -200,6 +205,7 @@ Notes:
 - OpenTofu must run on a machine where both `tofu` and `virsh` can reach the same libvirt daemon.
 - The OpenTofu stack assumes the existing `default` libvirt network remains the source of truth for guest networking.
 - The manual Kubernetes training pass should be performed from `homelab-ubuntu`, because that host can reach the `192.168.122.0/24` libvirt guest network directly.
+- After `kubeadm init`, copy `/etc/kubernetes/admin.conf` from `control-plane` to `~/.kube/config` on `homelab-ubuntu` and use that host as the main `kubectl` execution point for the manual phase.
 
 ---
 
@@ -234,7 +240,8 @@ Access to services:
 - [x] Record the `pkgs.k8s.io` connectivity limitation and the fallback package-delivery workflow
 - [x] Publish the required Kubernetes `1.35.4` `.deb` artifacts to the GitLab fallback source
 - [x] Validate node-local installation of Kubernetes bootstrap packages from the GitLab fallback source
-- [ ] Perform a manual `kubeadm` bootstrap and record the runbook
+- [x] Perform a manual `kubeadm` bootstrap and record the runbook
+- [x] Validate worker joins and Cilium `1.19.3` until all nodes become `Ready`
 - [ ] Rebuild the guests with OpenTofu after the manual training pass
 
 ### Phase 3 — Kubernetes Automation

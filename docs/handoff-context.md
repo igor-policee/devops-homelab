@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Project: single-host DevOps homelab on Ubuntu Server 24.04 LTS with WiFi uplink, KVM/libvirt, and a future kubeadm-based Kubernetes cluster.
+Project: single-host DevOps homelab on Ubuntu Server 24.04 LTS with WiFi uplink, KVM/libvirt, and a kubeadm-based Kubernetes cluster that has now been validated manually before Ansible automation.
 
 Completed so far:
 - Ubuntu Server 24.04 LTS installed on physical host
@@ -25,6 +25,13 @@ Completed so far:
 - `tofu init`, `tofu plan`, `tofu apply`, and `tofu destroy` were successfully verified on `homelab-ubuntu`
 - SSH access to all 3 guests was verified with the dedicated VM key and the `homelab` user
 - a baseline Ansible guest-validation playbook now exists at `ansible/playbooks/guest-bootstrap.yml`
+- a full manual Kubernetes bootstrap was completed successfully on the current guests
+- `kubeadm init` was validated on `control-plane` with:
+  - `--apiserver-advertise-address=192.168.122.10`
+  - `--pod-network-cidr=10.244.0.0/16`
+- `kubeadm join` was validated on both worker nodes
+- the cluster reached `Ready` on all nodes after installing Cilium `1.19.3`
+- `kubectl` administration for the manual phase now runs from `homelab-ubuntu` using a local copy of `admin.conf`
 
 Current access model:
 - Local SSH from home LAN works
@@ -75,6 +82,13 @@ Verified state:
   - use package version `v1.35.4` for the current Kubernetes package set
   - after local installation from fallback artifacts, keep `kubeadm`, `kubelet`, `kubectl`, `cri-tools`, and `kubernetes-cni` on hold
   - disable `/etc/apt/sources.list.d/kubernetes.list` on the nodes after the fallback installation for this phase
+- Manual cluster administration decision:
+  - use `homelab-ubuntu` as the main `kubectl` and Helm execution point
+  - keep the control-plane VM as the source of `/etc/kubernetes/admin.conf`
+- Manual bootstrap validation result:
+  - `kubeadm init` on Kubernetes `v1.35.4` completed successfully even though upstream already advertised `v1.36.0`
+  - the observed pre-CNI state was `NotReady` nodes with `CoreDNS` pending
+  - the observed post-Cilium state was all nodes `Ready` with `CoreDNS` running
 
 ## Minimal Automation Stack
 
@@ -146,7 +160,7 @@ Interpretation:
 
 ## Notes For Next Chat
 
-The next chat should resume from the manual `kubeadm` training pass, not from networking or OpenTofu bootstrap.
+The next chat should resume from the Ansible automation phase, not from manual `kubeadm` bootstrap or OpenTofu provisioning.
 
 What is already done:
 - host bootstrap is done
@@ -168,15 +182,29 @@ What is already done:
 - the bootstrap package set was installed on the current nodes from GitLab-hosted `.deb` files instead of direct `pkgs.k8s.io` payload downloads
 - the nodes were configured to keep `kubeadm`, `kubelet`, `kubectl`, `cri-tools`, and `kubernetes-cni` on hold
 - the upstream Kubernetes apt source was disabled on the nodes for this phase after the fallback installation
+- `kubelet` restart loops before `kubeadm init` / `kubeadm join` were observed and confirmed to be expected while `/var/lib/kubelet/config.yaml` was still absent
+- `kubeadm init` succeeded with:
+  - Kubernetes version `v1.35.4`
+  - advertise address `192.168.122.10`
+  - pod CIDR `10.244.0.0/16`
+- the worker join flow succeeded on `worker-1` and `worker-2`
+- `kubectl get nodes -o wide` reached:
+  - `control-plane` -> `Ready`
+  - `worker-1` -> `Ready`
+  - `worker-2` -> `Ready`
+- Cilium `1.19.3` was installed successfully through Helm from `homelab-ubuntu`
+- `CoreDNS` transitioned from `Pending` before CNI to `Running` after Cilium was installed
 
 What needs to happen next:
-1. Perform one manual `kubeadm` installation pass on the current guests and record every step in the dedicated runbook
-2. Record the `pkgs.k8s.io` download-timeout issue and the chosen fallback workflow in the runbook
-3. Capture real outputs and any Ubuntu 24.04-specific fixes from that pass
-4. Recreate the guests with OpenTofu after the manual pass
-5. Convert the validated manual workflow into Ansible roles and playbooks
-6. Keep the Ansible inventory aligned with the confirmed VM addresses for the automation phase
-7. Carry the same package-hold and repo-disable behavior into the first Ansible implementation
+1. Recreate the guests with OpenTofu after the completed manual training pass
+2. Keep the Ansible inventory aligned with the confirmed VM addresses for the automation phase
+3. Convert the validated manual workflow into Ansible roles and playbooks
+4. Carry the same package-source, package-hold, and repo-disable behavior into the first Ansible implementation
+5. Reproduce the validated control-plane arguments in automation:
+   - `--apiserver-advertise-address=192.168.122.10`
+   - `--pod-network-cidr=10.244.0.0/16`
+6. Reproduce the validated Cilium installation in automation with chart version `1.19.3`
+7. Decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate change
 
 ## Repository State
 
@@ -195,6 +223,6 @@ Important older infrastructure commits:
 - `f83ee9e` — `ansible: pin libvirt role to system URI`
 
 Current local worktree notes:
-- the workstation repository currently has local documentation edits in progress
 - `ansible/inventory/hosts.yml` also has a local modification and should be reviewed separately before any commit
+- `kubeadm-join-token` is an untracked local artifact from the manual pass and should not be committed
 - the host copy at `~/devops-homelab` should still be treated as the operational copy for current OpenTofu and VM-side bootstrap work

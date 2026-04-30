@@ -253,12 +253,12 @@ Why `10.244.0.0/16`:
 - it does not overlap with the documented libvirt NAT subnet `192.168.122.0/24`
 - it keeps the pod network explicit in the notes instead of relying on defaults
 
-After a successful init, configure `kubectl` for the `homelab` user:
+After a successful init, configure `kubectl` on `homelab-ubuntu`, because the host is the main execution point for `kubectl` in this lab:
 
 ```bash
-mkdir -p "$HOME/.kube"
-sudo cp -i /etc/kubernetes/admin.conf "$HOME/.kube/config"
-sudo chown "$(id -u)":"$(id -g)" "$HOME/.kube/config"
+mkdir -p ~/.kube
+ssh control-plane 'sudo cat /etc/kubernetes/admin.conf' > ~/.kube/config
+chmod 600 ~/.kube/config
 ```
 
 Capture the worker join command printed by `kubeadm init`. If needed, you can regenerate it later with:
@@ -266,6 +266,14 @@ Capture the worker join command printed by `kubeadm init`. If needed, you can re
 ```bash
 sudo kubeadm token create --print-join-command
 ```
+
+Validated observations from this session:
+
+- `kubeadm init` reported that upstream already advertised `v1.36.0`, then correctly fell back to `stable-1.35`
+- the actual initialized cluster version was `v1.35.4`
+- `kubelet` became healthy after `kubeadm` wrote `/var/lib/kubelet/config.yaml` and kubeadm-managed flags
+- before CNI installation, `kubectl get nodes -o wide` showed only `control-plane` and that node was `NotReady`
+- before CNI installation, `kubectl get pods -A -o wide` showed `CoreDNS` as `Pending` and the control-plane static Pods as `Running`
 
 Validation:
 
@@ -291,7 +299,14 @@ sudo kubeadm join 192.168.122.10:6443 --token <token> \
   --discovery-token-ca-cert-hash sha256:<hash>
 ```
 
-Validation on the control-plane node:
+Validated observations from this session:
+
+- both `worker-1` and `worker-2` completed TLS bootstrap successfully
+- both workers were able to read the `kubeadm-config` ConfigMap from `kube-system`
+- after both joins, all three nodes appeared in `kubectl get nodes -o wide`
+- before CNI installation, all nodes remained `NotReady`, which was expected
+
+Validation on `homelab-ubuntu`:
 
 ```bash
 kubectl get nodes -o wide
@@ -304,14 +319,14 @@ Expected result before CNI:
 
 ## 6. Install Cilium
 
-Run on `control-plane`.
+Run on `homelab-ubuntu`.
 
 This project uses Cilium as the Kubernetes CNI. For the manual training pass, install it with Helm so the steps stay visible and easy to map into later automation.
 
 Install Helm if it is not already present:
 
 ```bash
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
 
 Install Cilium from the OCI registry:
@@ -335,9 +350,17 @@ Expected result:
 - CoreDNS becomes `Running`
 - all nodes transition to `Ready`
 
+Validated observations from this session:
+
+- Helm was available on `homelab-ubuntu` as `v3.20.2`
+- `helm install cilium ... --version 1.19.3 --namespace kube-system` completed successfully
+- `cilium`, `cilium-envoy`, and `cilium-operator` Pods reached `Running`
+- `kubectl get nodes -o wide` showed `control-plane`, `worker-1`, and `worker-2` as `Ready`
+- `CoreDNS` transitioned from `Pending` before CNI to `Running` after the Cilium install
+
 ## 7. Optional Cilium CLI validation
 
-Run on `control-plane` if you want a stronger post-install check.
+Run on `homelab-ubuntu` if you want a stronger post-install check.
 
 Install the CLI:
 
@@ -367,6 +390,20 @@ Capture these values from the manual bootstrap because the later Ansible work wi
 - the validated Cilium chart version
 - any extra fixes required on Ubuntu 24.04 guests
 - the chosen fallback package-delivery method if the upstream Kubernetes CDN is unreliable
+
+Validated values from this session:
+
+- `kubeadm init` arguments:
+  - `--apiserver-advertise-address=192.168.122.10`
+  - `--pod-network-cidr=10.244.0.0/16`
+- Kubernetes version: `v1.35.4`
+- validated Cilium chart version: `1.19.3`
+- operational `kubectl` execution point: `homelab-ubuntu`
+- pre-init `kubelet` restart loop cause:
+  - `/var/lib/kubelet/config.yaml` did not exist yet
+- post-CNI cluster state:
+  - all three nodes `Ready`
+  - `CoreDNS` `Running`
 
 ## Fallback package source layout
 
