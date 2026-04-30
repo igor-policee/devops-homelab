@@ -1,5 +1,27 @@
 # Project Decisions
 
+## 2026-04-30 — Position the project as a reproducible homelab, not a platform-first build
+
+Decision:
+- define the project as a reproducible Kubernetes homelab for hands-on practice, safe pre-production experimentation, and public demonstration of engineering quality
+- prioritize engineering depth, reproducibility, and documentation quality over adding many tools quickly
+- treat the current repository as a strong homelab baseline first, and only evolve it toward a platform as additional service-delivery and day-2 layers are added
+
+Reason:
+- the project needs to satisfy three real user goals at the same time:
+  - learn and practice on real infrastructure
+  - test ideas safely before proposing or applying them in an enterprise environment
+  - show employers a serious, end-to-end engineering project on GitHub
+- a platform label would currently overstate the scope, while a homelab baseline with strong automation and documentation already delivers practical value
+
+Alternatives considered:
+- position the project immediately as a full platform build
+- treat the repository only as a personal learning sandbox without stronger engineering standards
+
+Consequences:
+- the next phases should focus on meaningful platform-like capabilities such as networking, GitOps, secrets, observability, and operational runbooks
+- the project should avoid adding tools only for visual completeness or trend value
+- documentation and operational clarity remain first-class deliverables, not secondary polish
 ## 2026-04-30 — Keep Kubernetes `1.35` for manual and first automated bootstrap
 
 Decision:

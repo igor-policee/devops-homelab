@@ -4,6 +4,12 @@
 
 Project: single-host DevOps homelab on Ubuntu Server 24.04 LTS with WiFi uplink, KVM/libvirt, and a kubeadm-based Kubernetes cluster that has now been validated manually before Ansible automation.
 
+The project direction is now explicit:
+- this repository is a reproducible Kubernetes homelab for hands-on practice
+- it is also a safe lab for pre-production experimentation before enterprise use
+- it is also a public GitHub showcase of engineering quality
+- it is not yet being positioned as a full platform; that label should be earned later through service-delivery and day-2 operational layers
+
 Completed so far:
 - Ubuntu Server 24.04 LTS installed on physical host
 - Host connected to WiFi
@@ -237,13 +243,17 @@ What is already done:
 
 What needs to happen next:
 1. Treat the Kubernetes automation phase as the new baseline and avoid reopening bootstrap fixes unless a fresh repro appears
-2. Choose the next project phase after bootstrap validation:
+2. Keep the next phase aligned with the documented project goal:
+   - practice with technologies that are relevant to real work
+   - validate ideas that could later transfer into enterprise environments
+   - produce artifacts that improve the public GitHub story of the project
+3. Choose the next project phase after bootstrap validation:
    - Cilium Gateway API and ingress routing
    - ArgoCD and GitOps bootstrap
    - SOPS + age secret management
    - observability stack
-3. If networking work starts next, decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate documented change
-4. Keep using `homelab-ubuntu` as the execution point for OpenTofu, `kubectl`, Helm, and the Ansible localhost operator workflow
+4. If networking work starts next, decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate documented change
+5. Keep using `homelab-ubuntu` as the execution point for OpenTofu, `kubectl`, Helm, and the Ansible localhost operator workflow
 
 ## Repository State
 

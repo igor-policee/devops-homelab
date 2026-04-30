@@ -4,13 +4,25 @@ A local DevOps lab built on a single physical host with remote access and a Kube
 
 ## 🎯 Goal
 
-Create a flexible, secure environment that is as close to production as possible for:
+Build a reproducible Kubernetes homelab that serves three purposes at once:
+
+- hands-on DevOps and Kubernetes practice
+- safe pre-production experimentation before trying ideas in an enterprise environment
+- public demonstration of engineering quality through a real GitHub project
+
+The project still aims to stay flexible, secure, and as close to production as is practical for a single-host lab, especially for:
 
 - working with Kubernetes (kubeadm)
 - working with Docker / containerd
 - configuring CI/CD
 - experimenting with networking (Cilium, Gateway API)
 - infrastructure as code (Ansible, OpenTofu)
+
+Non-goals for the current phase:
+
+- do not expand the stack just to collect tools
+- do not optimize for breadth at the expense of automation quality, documentation, or operability
+- do not call the project a full platform until it also has a service-delivery layer and day-2 operational maturity
 
 ---
 
