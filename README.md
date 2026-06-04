@@ -4,25 +4,30 @@ A local DevOps lab built on a single physical host with remote access and a Kube
 
 ## 🎯 Goal
 
-Build a reproducible Kubernetes homelab that serves three purposes at once:
+Build a Kubernetes-based platform that serves two purposes:
 
-- hands-on DevOps and Kubernetes practice
-- safe pre-production experimentation before trying ideas in an enterprise environment
-- public demonstration of engineering quality through a real GitHub project
+- deploy and operate a full CI/CD stack (GitLab CI, ArgoCD, Vault) in a reproducible homelab environment
+- train and build DevSecOps skills and solutions: security scanning, policy enforcement, secrets management, and supply chain security
 
-The project still aims to stay flexible, secure, and as close to production as is practical for a single-host lab, especially for:
+The platform aims to stay close to production-grade practices for:
 
-- working with Kubernetes (kubeadm)
-- working with Docker / containerd
-- configuring CI/CD
-- experimenting with networking (Cilium, Gateway API)
-- infrastructure as code (Ansible, OpenTofu)
+- CI/CD pipeline design with GitLab CI (Shift Left, Secure SDLC)
+- GitOps delivery with ArgoCD
+- Secrets management with Vault (Kubernetes auth backend, dynamic secrets, policy-as-code)
+- Identity and access management with Keycloak and LDAP
+- Container registry and artifact security with Harbor
+- Kubernetes security hardening: CIS Benchmarks, RBAC, NetworkPolicies, admission control
+- Application security testing: SAST, SCA, DAST integrated into pipelines
+- Supply chain security: image signing, SBOM
+- Security monitoring and incident response: SIEM, MITRE ATT&CK
+- Threat modeling and security maturity assessment (OWASP SAMM)
+- Infrastructure as code (Ansible, OpenTofu)
 
 Non-goals for the current phase:
 
-- do not expand the stack just to collect tools
+- do not implement DevSecOps tooling without understanding the underlying security concept first
 - do not optimize for breadth at the expense of automation quality, documentation, or operability
-- do not call the project a full platform until it also has a service-delivery layer and day-2 operational maturity
+- do not call the project a full DevSecOps platform until the CI/CD, secrets, and security scanning layers are validated end-to-end
 
 ---
 
@@ -82,11 +87,11 @@ Target access model:
 
 ## 🖥️ Virtual Machines
 
-| Node            | CPU | RAM | Disk |
-|-----------------|-----|-----|------|
-| control-plane   | 2   | 4GB | 100GB |
-| worker-1        | 3   | 6GB | 100GB |
-| worker-2        | 3   | 6GB | 100GB |
+| Node            | CPU | RAM  | Disk  |
+|-----------------|-----|------|-------|
+| control-plane   | 2   | 4GB  | 100GB |
+| worker-1        | 3   | 12GB | 100GB |
+| worker-2        | 3   | 12GB | 100GB |
 
 Addressing model for the VM network:
 
@@ -135,10 +140,17 @@ The project uses a minimal automation stack that covers the full path from the p
 | VM provisioning | OpenTofu + libvirt provider | Declaratively create the Kubernetes virtual machines |
 | VM configuration | Ansible | Install containerd, kubeadm, and required system settings |
 | Kubernetes bootstrap | Ansible + kubeadm | Initialize the control plane and join worker nodes |
-| Kubernetes packages | Helm | Install and manage Cilium, ArgoCD, observability tools, and other charts |
+| Kubernetes packages | Helm | Install and manage Cilium, ArgoCD, Vault, Harbor, and other charts |
+| CI/CD | GitLab CI | Pipeline execution; deployment model TBD (self-hosted on cluster or SaaS runner) |
 | GitOps | ArgoCD | Continuously reconcile Kubernetes applications from Git |
-| Secrets | SOPS + age | Store encrypted secrets safely in Git |
-| CI checks | GitHub Actions | Validate OpenTofu, Ansible, YAML, and Helm changes before merge |
+| Secrets | Vault | Self-hosted secrets management with Kubernetes auth and dynamic secrets |
+| Identity | Keycloak + LDAP | Identity and access management; SSO for platform services |
+| Container registry | Harbor | Private registry with integrated Trivy vulnerability scanning |
+| SAST / SCA | SonarQube, Trivy | Static code analysis and dependency scanning in CI pipeline |
+| DAST | OWASP ZAP | Dynamic application security testing integrated into CI pipeline |
+| Policy enforcement | Kyverno | Kubernetes admission control and policy-as-code |
+| Supply chain | Cosign, Syft | Image signing and SBOM generation |
+| Vuln management | DefectDojo | Centralized tracking and triage of security findings |
 
 ---
 
@@ -308,43 +320,81 @@ Access to services:
 - [x] Confirm the second Ansible bootstrap run is idempotent
 
 ### Phase 4 — Service Delivery Baseline
+- [ ] Configure Cilium in kube-proxy replacement mode (eBPF); remove kube-proxy from the cluster
 - [ ] Configure Cilium Gateway API
 - [ ] Ingress routing
 - [ ] Define the service exposure model for the lab
-- [ ] Decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate documented change
 
-### Phase 5 — Delivery and Secrets
-- [ ] GitOps with ArgoCD
-- [ ] Define a documented application deployment pattern for the cluster
-- [ ] Secrets management with SOPS + age
-- [ ] CI/CD with GitHub Actions
+### Phase 5 — GitLab CI
+- [ ] Decide on GitLab CI deployment model (self-hosted instance on cluster or SaaS GitLab.com with cluster runner)
+- [ ] Deploy GitLab CI runner or self-hosted GitLab instance
+- [ ] Build and validate a first pipeline (lint, test, build)
+- [ ] Integrate the pipeline with the Kubernetes cluster
 
-### Phase 6 — Observability
+### Phase 6 — GitOps with ArgoCD
+- [ ] Deploy ArgoCD on the cluster
+- [ ] Define a documented application deployment pattern
+- [ ] Connect ArgoCD to the Git repository
+- [ ] Validate end-to-end GitOps delivery from Git to cluster
+
+### Phase 7 — Secrets and Identity
+- [ ] Deploy Vault self-hosted on the cluster
+- [ ] Configure Vault Kubernetes auth backend and dynamic secrets
+- [ ] Deploy Keycloak for identity and access management
+- [ ] Integrate Keycloak with LDAP
+- [ ] Integrate Vault and Keycloak with ArgoCD and GitLab CI
+- [ ] Validate secret injection and SSO for platform services
+
+### Phase 8 — Container and Kubernetes Security
+- [ ] Deploy Harbor as a private container registry
+- [ ] Configure Trivy integration in Harbor for vulnerability scanning
+- [ ] Apply Docker security best practices (CIS Benchmarks, minimal images, non-root)
+- [ ] Apply Kubernetes security hardening per CIS Kubernetes Benchmark
+- [ ] Configure RBAC for least-privilege access across platform components
+- [ ] Deploy Kyverno for admission control and policy enforcement
+- [ ] Configure AppArmor and Seccomp profiles for critical workloads
+- [ ] Configure NetworkPolicies for traffic isolation between namespaces
+
+### Phase 9 — Secure CI/CD Pipeline (Shift Left)
+- [ ] Integrate SAST into the GitLab CI pipeline (SonarQube or Snyk)
+- [ ] Integrate SCA for dependency scanning (Trivy)
+- [ ] Integrate DAST into the pipeline (OWASP ZAP)
+- [ ] Implement supply chain security: image signing (Cosign) and SBOM generation (Syft)
+- [ ] Deploy DefectDojo for centralized vulnerability management and triage
+- [ ] Validate an end-to-end secure pipeline: commit → scan → sign → deploy
+
+### Phase 10 — Security Testing and Monitoring
+- [ ] Configure SIEM for security event collection and correlation
+- [ ] Apply MITRE ATT&CK framework to classify and respond to threats
+- [ ] Conduct basic infrastructure security testing (Nmap, baseline penetration testing)
+- [ ] Practice Threat Modeling for platform components (OWASP methodology)
+- [ ] Evaluate security maturity using OWASP SAMM
+- [ ] Validate incident response workflow and produce a Postmortem template
+
+### Phase 11 — Observability
 - [ ] Establish a minimal observability baseline
 - [ ] Deploy Prometheus
 - [ ] Deploy Grafana
 - [ ] Deploy Loki
 
-### Phase 7 — Operations and Recovery
+### Phase 12 — Operations and Recovery
 - [ ] Document day-2 operational runbooks
 - [ ] Document upgrade procedures for Kubernetes and key cluster components
 - [ ] Document recovery flows for common failures such as node recreation, kubelet issues, and CNI reconciliation
 - [ ] Define a baseline security and network policy approach for the cluster
 
-### Phase 8 — Remote Access
+### Phase 13 — Remote Access
 - [ ] Configure Tailscale for access from external networks
 
 ---
 
 ## 🧭 Deferred Tools
 
-The following tools are intentionally not part of the initial stack:
+The following tools are intentionally not part of the current stack:
 
 - Packer: useful later for custom VM images, but not required at the start
-- Vault: too heavy for this single-host homelab; SOPS + age is simpler
 - Rancher: adds an extra management layer that is not needed yet
 - Pulumi: valid alternative, but OpenTofu is more direct for libvirt VM provisioning
-- Jenkins: GitHub Actions is simpler for lightweight repository checks
 
 ---
 
@@ -353,6 +403,7 @@ The following tools are intentionally not part of the initial stack:
 - WiFi instead of Ethernet → possible latency
 - Single physical host → no real HA
 - NAT network → no direct L2 interaction
+- AppArmor only (Ubuntu 24.04) → SELinux is not available on the cluster nodes by default; SELinux practice requires a separate RHEL-based VM (AlmaLinux 9 or Rocky Linux 9), which can be provisioned with the same OpenTofu + libvirt stack when needed
 
 ---
 
@@ -362,4 +413,4 @@ The following tools are intentionally not part of the initial stack:
 - No port forwarding
 - Initial access is limited to the home LAN over SSH key authentication
 - Target remote access is through VPN (Tailscale)
-- Secrets are stored encrypted with SOPS + age
+- Secrets management through self-hosted Vault with Kubernetes auth backend

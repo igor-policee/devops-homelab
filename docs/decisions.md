@@ -97,6 +97,107 @@ Consequences:
 - the automation phase now owns operator-tool preparation as part of the documented bootstrap workflow
 - the project keeps Kubernetes node bootstrap packages on the GitLab fallback source, while Helm remains sourced from the official upstream binary release
 
+## 2026-06-04 — Replace kube-proxy with Cilium eBPF kube-proxy replacement mode
+
+Decision:
+- run Cilium in kube-proxy replacement mode using eBPF instead of the default kube-proxy setup
+- Phase 4 Ansible and Helm work must configure Cilium with `kubeProxyReplacement: true` and
+  kubeadm must skip the kube-proxy addon (`--skip-phases=addon/kube-proxy`)
+
+Reason:
+- eBPF-based networking is the modern approach aligned with a DevSecOps platform; it enables
+  deeper network policy enforcement and reduces per-hop overhead compared to iptables
+- this decision is made before Phase 4 to avoid reconfiguring the network stack after workloads
+  are deployed on the cluster
+
+Alternatives considered:
+- keep kube-proxy and add Cilium eBPF features later as an optional upgrade
+
+Consequences:
+- the current running cluster still uses kube-proxy; applying this change requires either a
+  documented in-place migration or a cluster rebuild at the start of Phase 4
+- Phase 4 Ansible playbooks and Cilium Helm values must be updated accordingly
+
+## 2026-06-04 — Expand DevSecOps platform toolset to cover the full security lifecycle
+
+Decision:
+- extend the planned toolset to cover all major DevSecOps practice areas: container security (Harbor), identity and access management (Keycloak + LDAP), application security testing (SonarQube, OWASP ZAP), supply chain security (Cosign, Syft), policy enforcement (Kyverno), vulnerability management (DefectDojo), and security monitoring (SIEM, MITRE ATT&CK)
+- split the single "DevSecOps Tooling" phase into four focused phases: container and Kubernetes security, secure CI/CD pipeline, security testing and monitoring
+- rename Phase 7 from "Secrets with Vault" to "Secrets and Identity" to include Keycloak and LDAP alongside Vault
+
+Reason:
+- the project vision is a modern DevSecOps platform covering the full SDLC security lifecycle, not just a CI/CD platform with basic scanning
+- the full toolset provides a complete training environment aligned with industry DevSecOps practices
+- grouping tools by security domain (identity, container security, pipeline security, threat analysis) makes each phase independently learnable and deployable
+
+Alternatives considered:
+- keep a single broad DevSecOps tooling phase with all tools listed together
+- implement only the tools directly required by the CI/CD pipeline
+
+Consequences:
+- the roadmap now spans 13 phases (1–3 completed, 4–13 pending)
+- each DevSecOps phase maps to a distinct security domain, making progress measurable
+- Keycloak must be deployed alongside Vault in Phase 7, increasing Phase 7 complexity
+- Harbor becomes a dependency for Phase 8 and Phase 9 (supply chain and image signing)
+
+## 2026-06-04 — Redirect project to a DevSecOps CI/CD platform
+
+Decision:
+- reposition the project from a general DevOps/Kubernetes homelab to a platform for deploying and operating a CI/CD stack (GitLab CI, ArgoCD, Vault) and for DevSecOps training and solution development
+- DevSecOps skill-building becomes the primary goal; the public GitHub showcase remains but is secondary
+
+Reason:
+- the user wants to expand their DevOps profile to DevSecOps
+- the homelab provides a safe, reproducible environment to practice real security tooling without enterprise risk
+- the existing Kubernetes automation baseline (Phases 1–3) is a solid foundation for deploying CI/CD and security tooling on top
+
+Alternatives considered:
+- continue as a general-purpose DevOps homelab and add security tooling incrementally without a declared focus
+- pursue a cloud-based DevSecOps lab instead of a self-hosted one
+
+Consequences:
+- roadmap phases are restructured to target GitLab CI, ArgoCD, Vault, and DevSecOps tooling in explicit phases
+- GitHub Actions and SOPS+age are removed from the planned stack
+- new phases cover SAST, image scanning, policy enforcement, supply chain security, and DAST
+
+## 2026-06-04 — Replace GitHub Actions with GitLab CI
+
+Decision:
+- GitLab CI is the primary CI/CD platform for this project; GitHub Actions is removed from the planned stack
+- GitLab CI deployment model is TBD: self-hosted GitLab instance on the cluster or SaaS GitLab.com with a cluster-side runner
+
+Reason:
+- GitLab provides integrated CI/CD with native security scanning hooks, runner flexibility, and a self-hosted option that fits the homelab model
+- GitLab CI is directly relevant to DevSecOps environments; its native SAST, DAST, container scanning, and dependency scanning integrations align with the new project goal
+
+Alternatives considered:
+- keep GitHub Actions as a secondary lint/check layer for the GitHub repository while GitLab CI handles the full pipeline
+- use Jenkins instead of GitLab CI
+
+Consequences:
+- Phase 5 of the roadmap must decide and document the GitLab CI deployment model before pipeline work begins
+- the GitHub repository remains the source of truth for IaC, but CI/CD pipelines run in GitLab
+- no GitHub Actions workflows will be added to the repository
+
+## 2026-06-04 — Replace SOPS+age with Vault
+
+Decision:
+- HashiCorp Vault self-hosted on the cluster is the secrets backend; SOPS+age is removed from the planned stack
+- Vault will use the Kubernetes auth backend and support dynamic secrets and policy-as-code
+
+Reason:
+- Vault is a core DevSecOps skill; its Kubernetes auth backend, dynamic secrets, and policy engine are not achievable with SOPS+age
+- integrating Vault with both ArgoCD and GitLab CI is a realistic pattern used in production DevSecOps environments and directly supports the training goal
+
+Alternatives considered:
+- keep SOPS+age alongside Vault for Git-encrypted secrets at rest
+- use HCP Vault (managed) instead of self-hosted
+
+Consequences:
+- Vault must be bootstrapped before application secrets can be defined (Phase 7)
+- ArgoCD and GitLab CI must be integrated with Vault for secret injection in later phases
+- the bootstrap complexity is higher than SOPS+age but justified by the DevSecOps focus
+
 ## 2026-04-30 — Keep `kubelet` stopped until `kubeadm` owns first bootstrap
 
 Decision:

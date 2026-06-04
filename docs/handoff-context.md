@@ -4,11 +4,12 @@
 
 Project: single-host DevOps homelab on Ubuntu Server 24.04 LTS with WiFi uplink, KVM/libvirt, and a kubeadm-based Kubernetes cluster that has now been validated manually before Ansible automation.
 
-The project direction is now explicit:
-- this repository is a reproducible Kubernetes homelab for hands-on practice
-- it is also a safe lab for pre-production experimentation before enterprise use
-- it is also a public GitHub showcase of engineering quality
-- it is not yet being positioned as a full platform; that label should be earned later through service-delivery and day-2 operational layers
+The project direction has changed:
+- this repository is a Kubernetes-based platform for deploying and operating a CI/CD stack: GitLab CI, ArgoCD, and Vault
+- it is also a training environment for DevSecOps skills and solution development: security scanning, policy enforcement, secrets management, and supply chain security
+- the public GitHub repository remains a demonstration of engineering quality, but DevSecOps depth is now the primary goal
+- GitLab CI is the primary CI/CD platform; GitHub Actions has been removed from the planned stack
+- Vault (self-hosted on the cluster) is the secrets backend; SOPS+age has been removed from the planned stack
 
 Completed so far:
 - Ubuntu Server 24.04 LTS installed on physical host
@@ -86,6 +87,13 @@ Verified state:
   - a neutral shared account (`homelab`)
   - a dedicated VM SSH keypair
   - no reuse of the host SSH key
+- CI/CD platform: GitLab CI (deployment model TBD: self-hosted instance on cluster or SaaS GitLab.com with cluster runner)
+- Secrets backend: Vault self-hosted on the cluster (Kubernetes auth backend, dynamic secrets, policy-as-code)
+- GitHub Actions: removed from the planned stack
+- SOPS+age: removed from the planned stack; Vault replaces it as the secrets backend
+- kube-proxy replacement: Cilium will run in eBPF kube-proxy replacement mode; decided before Phase 4 to avoid network stack reconfiguration after workloads are deployed; requires cluster rebuild or documented in-place migration at Phase 4
+- SELinux: not available on Ubuntu 24.04 cluster nodes (AppArmor is the default); a separate AlmaLinux 9 or Rocky Linux 9 VM provisioned with the same OpenTofu + libvirt stack is the documented path for SELinux practice
+- worker VM RAM: increased to 12GB each (from 6GB) to accommodate self-hosted platform components; control-plane remains at 4GB
 - Kubernetes version target for the current phase:
   - use Kubernetes minor version `1.35`
   - use the same minor version for both the manual training pass and the first Ansible automation pass
@@ -109,14 +117,21 @@ Verified state:
   - the observed pre-CNI state was `NotReady` nodes with `CoreDNS` pending
   - the observed post-Cilium state was all nodes `Ready` with `CoreDNS` running
 
-## Minimal Automation Stack
+## Automation Stack
 
 - Ansible: host bootstrap, VM configuration, kubeadm workflow
 - OpenTofu + libvirt provider: VM provisioning
 - Helm: Kubernetes package installation
+- GitLab CI: primary CI/CD platform (deployment model TBD: self-hosted on cluster or SaaS runner)
 - ArgoCD: GitOps
-- SOPS + age: secrets in Git
-- GitHub Actions: CI checks
+- Vault: self-hosted secrets management with Kubernetes auth backend
+- Keycloak + LDAP: identity and access management, SSO for platform services
+- Harbor: private container registry with integrated Trivy vulnerability scanning
+- SonarQube: SAST and code quality analysis in CI pipeline
+- OWASP ZAP: DAST integrated into CI pipeline
+- Kyverno: Kubernetes admission control and policy enforcement
+- Cosign + Syft: image signing and SBOM generation
+- DefectDojo: centralized vulnerability management and triage
 
 ## OpenTofu Execution Model
 
@@ -253,22 +268,23 @@ What is already done:
 
 What needs to happen next:
 1. Treat the Kubernetes automation phase as the new baseline and avoid reopening bootstrap fixes unless a fresh repro appears
-2. Keep the next phase aligned with the documented project goal:
-   - practice with technologies that are relevant to real work
-   - validate ideas that could later transfer into enterprise environments
-   - produce artifacts that improve the public GitHub story of the project
-3. Use the updated roadmap framing for the next phases:
-   - service delivery baseline
-   - delivery and secrets
-   - observability
-   - operations and recovery
-   - remote access
-4. The most likely next concrete step is the service delivery baseline:
+2. Use the updated roadmap framing for the next phases:
+   - service delivery baseline (Phase 4: Cilium Gateway API, ingress routing)
+   - GitLab CI deployment (Phase 5)
+   - GitOps with ArgoCD (Phase 6)
+   - Secrets and identity: Vault + Keycloak + LDAP (Phase 7)
+   - Container and Kubernetes security: Harbor, CIS Benchmarks, Kyverno, RBAC (Phase 8)
+   - Secure CI/CD pipeline: SAST, SCA, DAST, supply chain, DefectDojo (Phase 9)
+   - Security testing and monitoring: SIEM, MITRE ATT&CK, Threat Modeling, OWASP SAMM (Phase 10)
+   - observability: Prometheus, Grafana, Loki (Phase 11)
+   - operations and recovery (Phase 12)
+   - remote access via Tailscale (Phase 13)
+3. The most likely next concrete step is the service delivery baseline:
    - Cilium Gateway API
    - ingress routing
    - service exposure model
-5. If networking work starts next, decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate documented change
-6. Keep using `homelab-ubuntu` as the execution point for OpenTofu, `kubectl`, Helm, and the Ansible localhost operator workflow
+4. If networking work starts next, decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate documented change
+5. Keep using `homelab-ubuntu` as the execution point for OpenTofu, `kubectl`, Helm, and the Ansible localhost operator workflow
 
 Validation status:
 - validated:
@@ -279,8 +295,17 @@ Validation status:
   - physical host reboot with libvirt guest autostart and Kubernetes cluster recovery
 - not yet validated in this repository phase:
   - service delivery baseline
+  - GitLab CI deployment and pipeline execution
   - ArgoCD bootstrap and application delivery pattern
-  - SOPS + age workflow
+  - Vault bootstrap and secret injection workflow
+  - Keycloak identity and access management, LDAP integration
+  - Harbor private container registry with vulnerability scanning
+  - Secure CI/CD pipeline: SAST (SonarQube), SCA, DAST (OWASP ZAP)
+  - Kubernetes security hardening: CIS Benchmark, Kyverno, AppArmor/Seccomp
+  - Supply chain security: Cosign image signing, Syft SBOM
+  - DefectDojo vulnerability management
+  - Security monitoring: SIEM, MITRE ATT&CK
+  - Threat Modeling and OWASP SAMM maturity assessment
   - observability stack
   - day-2 operations and recovery runbooks
   - remote access through Tailscale
