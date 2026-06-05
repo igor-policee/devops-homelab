@@ -3,13 +3,9 @@
 kubernetes_pod_network_cidr: 10.244.0.0/16
 kubernetes_control_plane_advertise_address: 192.168.122.10
 
-# Preserve the same package hold policy to avoid accidental drift from the validated build.
+# Hold only the packages explicitly installed; dependencies (cri-tools, kubernetes-cni)
+# are managed by apt and do not need to be held separately.
 kubernetes_held_packages:
   - kubeadm
   - kubelet
   - kubectl
-  - cri-tools
-  - kubernetes-cni
-
-# Store downloaded bootstrap artifacts under the guest operator account for easier inspection.
-kubernetes_bootstrap_download_dir: "/home/{{ ansible_user }}/k8s-bootstrap/{{ kubernetes_gitlab_package_version }}"

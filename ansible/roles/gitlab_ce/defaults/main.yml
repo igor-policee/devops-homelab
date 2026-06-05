@@ -1,2 +1,2 @@
 ---
-gitlab_external_url: "http://{{ ansible_host }}"
+gitlab_external_url: "http://gitlab.homelab.internal"

@@ -1,6 +1,5 @@
 ---
-# Keep the operator-host bootstrap directory separate from the guest-side package cache.
-operator_tools_download_dir: "/tmp/k8s-operator-tools/{{ kubernetes_gitlab_package_version }}"
+operator_tools_download_dir: "/tmp/k8s-operator-tools"
 
 # Install only the minimum local packages required to fetch and unpack operator tooling.
 operator_tools_packages:

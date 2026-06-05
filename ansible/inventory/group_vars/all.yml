@@ -1,30 +1,14 @@
 ---
-# Keep all bootstrap participants aligned with the same validated Kubernetes release.
-kubernetes_version: v1.35.4
-
-# Local GitLab CE package source — set project ID after running gitlab-bootstrap.yml.
-kubernetes_gitlab_api: http://192.168.122.20/api/v4
-kubernetes_gitlab_project_id: "TBD"
-kubernetes_gitlab_package_name: kubernetes-debs
-kubernetes_gitlab_package_version: v1.35.4
-
-# Keep the exact artifact names centralized so local and remote roles stay in sync.
-kubernetes_bootstrap_artifacts:
-  - cri-tools_1.35.0-1.1_amd64.deb
-  - kubeadm_1.35.4-1.1_amd64.deb
-  - kubectl_1.35.4-1.1_amd64.deb
-  - kubelet_1.35.4-1.1_amd64.deb
-  - kubernetes-cni_1.8.0-1.1_amd64.deb
+# Kubernetes minor version used for both the apt repository URL and package installation.
+# Kubernetes packages are installed from pkgs.k8s.io/core:/stable:/v1.35/deb/.
+kubernetes_minor_version: v1.35
 
 # Install the validated Cilium chart version from the host-side operator shell.
 cilium_chart_version: 1.19.3
 
 # Gateway API CRD version installed before Cilium to enable Gateway API support.
 gateway_api_version: v1.2.0
+
+# Operator host kubectl and Helm tool configuration.
 kubernetes_operator_kubeconfig_path: "{{ lookup('env', 'HOME') }}/.kube/config"
-
-# Keep the operator host on the same kubectl build that was validated for the cluster phase.
-kubernetes_operator_kubectl_artifact: kubectl_1.35.4-1.1_amd64.deb
-
-# Reuse the Helm version already validated manually on the operator host.
 helm_cli_version: v3.20.2

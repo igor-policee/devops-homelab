@@ -30,3 +30,23 @@ kvm_libvirt_storage_pool_path: /var/lib/libvirt/images
 
 # Reuse the SSH user by default so virsh can be validated for the normal operator account.
 kvm_libvirt_host_user: "{{ ansible_user | default('ipolishchuk') }}"
+
+# DNS host entries added to the libvirt network so all VMs resolve homelab.internal names
+# via the dnsmasq instance that libvirt already runs on the host (192.168.122.1).
+kvm_libvirt_dns_hosts:
+  - ip: 192.168.122.10
+    hostnames:
+      - control-plane
+      - control-plane.homelab.internal
+  - ip: 192.168.122.11
+    hostnames:
+      - worker-1
+      - worker-1.homelab.internal
+  - ip: 192.168.122.12
+    hostnames:
+      - worker-2
+      - worker-2.homelab.internal
+  - ip: 192.168.122.20
+    hostnames:
+      - gitlab-vm
+      - gitlab.homelab.internal

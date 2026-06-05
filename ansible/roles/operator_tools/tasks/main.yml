@@ -1,13 +1,4 @@
 ---
-# Require the same GitLab token used for node bootstrap so operator kubectl can come from the validated fallback source.
-- name: Assert GitLab token is provided for operator tools
-  ansible.builtin.assert:
-    that:
-      - lookup('ansible.builtin.env', 'GITLAB_TOKEN') | length > 0
-    fail_msg: >-
-      Export GITLAB_TOKEN on the Ansible control node before installing operator tooling.
-
-# Install the small helper packages needed to fetch and unpack local operator binaries.
 - name: Install operator tool prerequisites
   ansible.builtin.apt:
     name: "{{ operator_tools_packages }}"
@@ -15,33 +6,35 @@
     update_cache: true
   become: true
 
-# Keep locally downloaded artifacts out of the repository tree.
-- name: Ensure operator tools download directory exists
+# Mirror the same Kubernetes apt source used on the nodes so operator kubectl stays aligned.
+- name: Ensure apt keyrings directory exists
   ansible.builtin.file:
-    path: "{{ operator_tools_download_dir }}"
+    path: /etc/apt/keyrings
     state: directory
     mode: "0755"
+  become: true
 
-# Reuse the validated GitLab-hosted kubectl artifact instead of depending on direct upstream package delivery.
-- name: Download operator kubectl package
+- name: Download Kubernetes apt signing key
   ansible.builtin.get_url:
-    url: >-
-      {{ kubernetes_gitlab_api }}/projects/{{ kubernetes_gitlab_project_id }}/packages/generic/{{
-      kubernetes_gitlab_package_name }}/{{ kubernetes_gitlab_package_version }}/{{ kubernetes_operator_kubectl_artifact }}
-    dest: "{{ operator_tools_download_dir }}/{{ kubernetes_operator_kubectl_artifact }}"
+    url: "https://pkgs.k8s.io/core:/stable:/{{ kubernetes_minor_version }}/deb/Release.key"
+    dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
     mode: "0644"
-    headers:
-      PRIVATE-TOKEN: "{{ lookup('ansible.builtin.env', 'GITLAB_TOKEN') }}"
-  no_log: true
+  become: true
 
-# Keep the operator host kubectl version aligned with the cluster bootstrap version.
-- name: Install kubectl on the operator host from the validated package
+- name: Add Kubernetes apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] https://pkgs.k8s.io/core:/stable:/{{ kubernetes_minor_version }}/deb/ /"
+    state: present
+    filename: kubernetes
+    update_cache: true
+  become: true
+
+- name: Install kubectl on the operator host
   ansible.builtin.apt:
-    deb: "{{ operator_tools_download_dir }}/{{ kubernetes_operator_kubectl_artifact }}"
+    name: kubectl
     state: present
   become: true
 
-# Freeze kubectl on the operator host so local administration stays aligned with the current cluster phase.
 - name: Hold kubectl on the operator host
   ansible.builtin.dpkg_selections:
     name: kubectl
@@ -55,7 +48,6 @@
   changed_when: false
   failed_when: false
 
-# Use the architecture-specific Helm release naming expected by get.helm.sh.
 - name: Derive Helm release architecture
   ansible.builtin.set_fact:
     operator_tools_helm_arch: >-
@@ -67,6 +59,12 @@
       }}
 
 # Download Helm only when it is missing or at the wrong validated version.
+- name: Ensure operator tools download directory exists
+  ansible.builtin.file:
+    path: "{{ operator_tools_download_dir }}"
+    state: directory
+    mode: "0755"
+
 - name: Download Helm release archive
   ansible.builtin.get_url:
     url: "https://get.helm.sh/helm-{{ helm_cli_version }}-linux-{{ operator_tools_helm_arch }}.tar.gz"
@@ -74,7 +72,6 @@
     mode: "0644"
   when: operator_tools_helm_version.stdout | trim != helm_cli_version
 
-# Extract the Helm binary in a temporary directory before copying it into place.
 - name: Unpack Helm release archive
   ansible.builtin.unarchive:
     src: "{{ operator_tools_download_dir }}/helm-{{ helm_cli_version }}-linux-{{ operator_tools_helm_arch }}.tar.gz"
@@ -82,7 +79,6 @@
     remote_src: true
   when: operator_tools_helm_version.stdout | trim != helm_cli_version
 
-# Install the validated Helm binary into the standard local operator path.
 - name: Install Helm binary on the operator host
   ansible.builtin.copy:
     src: "{{ operator_tools_download_dir }}/linux-{{ operator_tools_helm_arch }}/helm"
