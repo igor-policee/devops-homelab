@@ -36,8 +36,10 @@ Non-goals for the current phase:
 ```
 Client (any PC/laptop)
    ↓
-SSH over public IP (router port forwarding)
+SSH to VPS:2222
    ↓
+VPS (reverse tunnel endpoint)
+   ↓  autossh persistent tunnel (outbound from homelab)
 Ubuntu Server 24.04 LTS (Host, WiFi)
    ↓
 KVM / libvirt
@@ -77,11 +79,11 @@ Current bootstrap access:
 - The LAN IP is reserved on the router via DHCP reservation
 - SSH access is hardened to key-only authentication
 
-Target access model:
+Remote access model:
 
-- Remote access from external networks via SSH over the host's public IP (router port forwarding)
-- SSH port forwarded at the router level; no VPN required
-- Web-facing services (ArgoCD, Grafana, etc.) exposed later via SSH port forwarding or a reverse proxy
+- ISP blocks all incoming connections at the network level; direct port forwarding is not viable
+- Remote access via reverse SSH tunnel: homelab-ubuntu maintains a persistent outbound connection to a VPS using `autossh` + systemd; the user connects to `VPS:2222` which relays through the tunnel to `homelab:22`
+- Web-facing services (ArgoCD, Grafana, etc.) accessed via SSH port forwarding through the same tunnel
 
 ---
 
@@ -387,9 +389,10 @@ Access to services:
 - [ ] Define a baseline security and network policy approach for the cluster
 
 ### Phase 13 — Remote Access
-- [ ] Configure router port forwarding for SSH (public IP → `192.168.1.100:22`)
-- [ ] Validate SSH access from external networks using key-based authentication
-- [ ] Configure SSH tunneling for access to internal cluster services (ArgoCD, Grafana, etc.)
+- [x] Diagnose ISP-level incoming connection blocking (stateful firewall drops all external SYN packets)
+- [x] Set up reverse SSH tunnel via VPS: `autossh` + systemd service on homelab-ubuntu
+- [x] Validate persistent SSH access from external networks through VPS relay
+- [ ] Configure SSH port forwarding through the tunnel for internal cluster services (ArgoCD, Grafana, etc.)
 
 ---
 

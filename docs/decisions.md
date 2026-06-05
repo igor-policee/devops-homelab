@@ -97,6 +97,27 @@ Consequences:
 - the automation phase now owns operator-tool preparation as part of the documented bootstrap workflow
 - the project keeps Kubernetes node bootstrap packages on the GitLab fallback source, while Helm remains sourced from the official upstream binary release
 
+## 2026-06-05 — Use reverse SSH tunnel via VPS for remote access
+
+Decision:
+- homelab-ubuntu maintains a persistent outbound SSH tunnel to a VPS using `autossh` and a systemd service
+- the user connects to `VPS:2222` which is relayed through the tunnel to `homelab:22`
+- VPS acts as a stateless TCP relay; private keys never leave the client machine
+
+Reason:
+- the ISP blocks all incoming TCP connections at the network level (stateful firewall drops external SYN packets)
+- direct port forwarding at the router is not viable regardless of router configuration
+- reverse tunnel leverages the ISP's allowance of outbound connections; the established session carries bidirectional traffic without triggering the incoming block
+
+Alternatives considered:
+- call ISP to request open incoming ports (user declined)
+- Cloudflare Tunnel or ngrok (adds external SaaS dependency)
+
+Consequences:
+- a VPS with a public IP is now a hard dependency for external access to the homelab
+- Phase 13 is largely complete; remaining item is SSH port forwarding for cluster services
+- the `autossh` systemd service must be added to Ansible host bootstrap to survive host rebuilds
+
 ## 2026-06-04 — Deploy GitLab CI on a dedicated VM outside the Kubernetes cluster
 
 Decision:
