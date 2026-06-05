@@ -1,0 +1,13 @@
+---
+internal_ca_dir: /etc/homelab-ca
+internal_ca_key_path: /etc/homelab-ca/ca.key
+internal_ca_cert_path: /etc/homelab-ca/ca.crt
+internal_ca_common_name: "Homelab Internal CA"
+internal_ca_valid_days: 3650
+
+# Signed service certificates are stored here and pushed to target VMs by callers.
+internal_ca_cert_dir: /etc/homelab-ca/certs
+internal_ca_service_valid_days: 730
+
+# Override with a list of {name, domain} dicts in the calling playbook.
+internal_ca_services: []

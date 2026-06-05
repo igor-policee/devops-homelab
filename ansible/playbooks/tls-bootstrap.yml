@@ -1,0 +1,32 @@
+---
+# Run this playbook once before gitlab-bootstrap.yml to create the homelab CA
+# and issue TLS certificates for all internal services.
+#
+# Prerequisites:
+#   ansible-galaxy collection install -r requirements.yml
+#   ansible-playbook -K playbooks/tls-bootstrap.yml
+#
+- name: Generate homelab internal CA and service certificates
+  hosts: localhost
+  connection: local
+  become: true
+  roles:
+    - role: internal_ca
+      vars:
+        internal_ca_services:
+          - name: gitlab
+            domain: gitlab.homelab.internal
+
+- name: Distribute homelab CA certificate to all VMs
+  hosts: kubernetes:gitlab
+  become: true
+  tasks:
+    - name: Copy homelab CA cert to system trust store
+      ansible.builtin.copy:
+        src: /etc/homelab-ca/ca.crt
+        dest: /usr/local/share/ca-certificates/homelab-ca.crt
+        mode: "0644"
+
+    - name: Update CA certificates on VM
+      ansible.builtin.command: update-ca-certificates
+      changed_when: false

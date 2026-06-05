@@ -1,2 +1,3 @@
 ---
-gitlab_external_url: "http://gitlab.homelab.internal"
+gitlab_external_url: "https://gitlab.homelab.internal"
+gitlab_ssl_dir: /etc/gitlab/ssl
