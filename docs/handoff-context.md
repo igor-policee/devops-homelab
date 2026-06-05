@@ -55,7 +55,7 @@ Completed so far:
 
 Current access model:
 - Local SSH from home LAN works
-- External remote access via Tailscale is intentionally postponed to the final stage
+- External remote access via SSH over the public IP is planned for Phase 13 (router port forwarding)
 - Recreated guests required SSH host-key refresh on `homelab-ubuntu` before new sessions could be established
 
 ## SSH Details
@@ -82,7 +82,7 @@ Verified state:
 - No bridge networking because host uses WiFi
 - No public ports exposed
 - No port forwarding
-- Tailscale will be configured only at the final remote-access phase
+- Remote access will be configured at Phase 13 via SSH over the public IP with router port forwarding
 - VM disks were increased from `40 GiB` to `100 GiB`
 - VM SSH access should use:
   - a neutral shared account (`homelab`)
@@ -97,7 +97,7 @@ Verified state:
 - SELinux: not available on Ubuntu 24.04 cluster nodes (AppArmor is the default); a separate AlmaLinux 9 or Rocky Linux 9 VM provisioned with the same OpenTofu + libvirt stack is the documented path for SELinux practice
 - VM topology: 4 nodes total — control-plane 4GB, worker-1 8GB, worker-2 8GB, gitlab-vm 8GB; total VM RAM 28GB, host retains ~4GB
 - GPU workload: RTX 3070 Ti on the host; PCIe passthrough to a worker node and NVIDIA Device Plugin deployment are planned for Phase 8
-- Remote access: `sslh` on port 443 (SSH + HTTPS multiplexer) is the near-term solution for DPI-restricted networks; Tailscale is replaced; Xray/V2Ray+Reality is documented as a DPI-resistant alternative for Phase 13
+- Remote access: SSH over the host's public IP via router port forwarding; no VPN or tunnel multiplexer required; SSH port forwarding covers access to internal cluster services
 - Kubernetes version target for the current phase:
   - use Kubernetes minor version `1.35`
   - use the same minor version for both the manual training pass and the first Ansible automation pass
@@ -282,7 +282,7 @@ What needs to happen next:
    - Security testing and monitoring: SIEM, MITRE ATT&CK, Threat Modeling, OWASP SAMM (Phase 10)
    - observability: Prometheus, Grafana, Loki (Phase 11)
    - operations and recovery (Phase 12)
-   - remote access via Tailscale (Phase 13)
+   - remote access via SSH over public IP (Phase 13)
 3. The most likely next concrete step is the service delivery baseline:
    - Cilium Gateway API
    - ingress routing
@@ -312,7 +312,7 @@ Validation status:
   - Threat Modeling and OWASP SAMM maturity assessment
   - observability stack
   - day-2 operations and recovery runbooks
-  - remote access through Tailscale
+  - remote access via SSH over public IP
 
 Operational note:
 - the host copy at `~/devops-homelab` remains the operational execution point for current OpenTofu, `kubectl`, Helm, and VM-side bootstrap work

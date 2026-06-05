@@ -36,15 +36,15 @@ Non-goals for the current phase:
 ```
 Client (any PC/laptop)
    ↓
-Tailscale (VPN)
+SSH over public IP (router port forwarding)
    ↓
 Ubuntu Server 24.04 LTS (Host, WiFi)
    ↓
 KVM / libvirt
    ↓
-3 Virtual Machines
+4 Virtual Machines
    ↓
-Kubernetes (kubeadm cluster)
+Kubernetes (kubeadm cluster) + GitLab CI VM
 ```
 
 ---
@@ -79,9 +79,9 @@ Current bootstrap access:
 
 Target access model:
 
-- Primary remote access from external networks will be added later with **Tailscale**
-- No externally exposed ports
-- A public IP is not used for incoming connections
+- Remote access from external networks via SSH over the host's public IP (router port forwarding)
+- SSH port forwarded at the router level; no VPN required
+- Web-facing services (ArgoCD, Grafana, etc.) exposed later via SSH port forwarding or a reverse proxy
 
 ---
 
@@ -138,7 +138,7 @@ The project uses a minimal automation stack that covers the full path from the p
 
 | Area | Tool | Purpose |
 |------|------|---------|
-| Host bootstrap | Ansible | Install and configure SSH, Tailscale, KVM/libvirt, base packages |
+| Host bootstrap | Ansible | Install and configure SSH, KVM/libvirt, base packages |
 | VM provisioning | OpenTofu + libvirt provider | Declaratively create the Kubernetes virtual machines |
 | VM configuration | Ansible | Install containerd, kubeadm, and required system settings |
 | Kubernetes bootstrap | Ansible + kubeadm | Initialize the control plane and join worker nodes |
@@ -286,7 +286,7 @@ At the current stage:
 Access to services:
 - through the local network during bootstrap
 - through NodePort / kubectl port-forward
-- through Tailscale after the final remote-access phase
+- through SSH over the public IP (router port forwarding) after Phase 13
 
 ---
 
@@ -387,9 +387,9 @@ Access to services:
 - [ ] Define a baseline security and network policy approach for the cluster
 
 ### Phase 13 — Remote Access
-- [ ] Configure `sslh` on the host to multiplex SSH and HTTPS on port 443
-- [ ] Validate SSH access over port 443 from external networks
-- [ ] Evaluate Xray/V2Ray with VLESS+Reality as a DPI-resistant tunnel alternative for restrictive network environments
+- [ ] Configure router port forwarding for SSH (public IP → `192.168.1.100:22`)
+- [ ] Validate SSH access from external networks using key-based authentication
+- [ ] Configure SSH tunneling for access to internal cluster services (ArgoCD, Grafana, etc.)
 
 ---
 
@@ -417,5 +417,5 @@ The following tools are intentionally not part of the current stack:
 - No externally open ports
 - No port forwarding
 - Initial access is limited to the home LAN over SSH key authentication
-- Target remote access is through VPN (Tailscale)
+- Remote access via SSH over the host's public IP; no VPN required
 - Secrets management through self-hosted Vault with Kubernetes auth backend
