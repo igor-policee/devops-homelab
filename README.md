@@ -92,9 +92,9 @@ Remote access model:
 | Node          | CPU | RAM | Disk  | Role                      |
 |---------------|-----|-----|-------|---------------------------|
 | control-plane | 2   | 4GB | 100GB | Kubernetes control plane  |
-| worker-1      | 3   | 8GB | 100GB | Kubernetes workloads      |
-| worker-2      | 3   | 8GB | 100GB | Kubernetes workloads      |
-| gitlab-vm     | 2   | 8GB | 100GB | GitLab CI (standalone VM) |
+| worker-1      | 3   | 8GB | 200GB | Kubernetes workloads      |
+| worker-2      | 3   | 8GB | 200GB | Kubernetes workloads      |
+| gitlab-vm     | 2   | 8GB | 200GB | GitLab CI (standalone VM) |
 
 Addressing model for the VM network:
 
