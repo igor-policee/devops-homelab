@@ -97,6 +97,27 @@ Consequences:
 - the automation phase now owns operator-tool preparation as part of the documented bootstrap workflow
 - the project keeps Kubernetes node bootstrap packages on the GitLab fallback source, while Helm remains sourced from the official upstream binary release
 
+## 2026-06-04 — Deploy GitLab CI on a dedicated VM outside the Kubernetes cluster
+
+Decision:
+- GitLab CI runs on a dedicated libvirt VM (`gitlab-vm`, `192.168.122.20`), not as a Kubernetes application
+- GitLab Runner is deployed into the Kubernetes cluster as a Kubernetes executor and connects to the external GitLab instance
+- `gitlab-vm` is provisioned by the same OpenTofu + libvirt stack as the Kubernetes nodes
+
+Reason:
+- CI/CD infrastructure must survive Kubernetes cluster failures; if the cluster is broken or being rebuilt, GitLab must remain available to run recovery pipelines
+- eliminates the chicken-and-egg bootstrap problem: GitLab cannot deploy itself to a cluster that does not yet exist
+- resource isolation: GitLab resource consumption does not compete with workload pods on worker nodes
+- production pattern: in real environments, CI/CD servers are not deployed on the same cluster they manage
+
+Alternatives considered:
+- deploy GitLab via the official Helm chart into the Kubernetes cluster
+
+Consequences:
+- OpenTofu `locals.tf` adds a fourth node entry (`gitlab-vm`); worker nodes are sized at 8GB each instead of 12GB
+- Phase 5 Ansible work targets the `gitlab-vm` host group for GitLab CE installation, and the Kubernetes cluster for Runner deployment
+- the `gitlab-vm` operates on the same libvirt NAT network (`192.168.122.0/24`) and is reachable from all Kubernetes nodes
+
 ## 2026-06-04 — Replace kube-proxy with Cilium eBPF kube-proxy replacement mode
 
 Decision:

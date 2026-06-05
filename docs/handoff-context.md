@@ -38,6 +38,7 @@ Completed so far:
   - `control-plane` -> `192.168.122.10`
   - `worker-1` -> `192.168.122.11`
   - `worker-2` -> `192.168.122.12`
+  - `gitlab-vm` -> `192.168.122.20`
 - the repository now contains a first Ansible automation scaffold for the Kubernetes phase:
   - `ansible/playbooks/kubernetes-bootstrap.yml`
   - `ansible/roles/kubernetes_guest_prep`
@@ -91,9 +92,12 @@ Verified state:
 - Secrets backend: Vault self-hosted on the cluster (Kubernetes auth backend, dynamic secrets, policy-as-code)
 - GitHub Actions: removed from the planned stack
 - SOPS+age: removed from the planned stack; Vault replaces it as the secrets backend
+- GitLab CI deployment model: dedicated libvirt VM (`gitlab-vm`, `192.168.122.20`, 2 CPU, 8GB) outside the Kubernetes cluster; GitLab Runner runs inside K8s as a Kubernetes executor
 - kube-proxy replacement: Cilium will run in eBPF kube-proxy replacement mode; decided before Phase 4 to avoid network stack reconfiguration after workloads are deployed; requires cluster rebuild or documented in-place migration at Phase 4
 - SELinux: not available on Ubuntu 24.04 cluster nodes (AppArmor is the default); a separate AlmaLinux 9 or Rocky Linux 9 VM provisioned with the same OpenTofu + libvirt stack is the documented path for SELinux practice
-- worker VM RAM: increased to 12GB each (from 6GB) to accommodate self-hosted platform components; control-plane remains at 4GB
+- VM topology: 4 nodes total — control-plane 4GB, worker-1 8GB, worker-2 8GB, gitlab-vm 8GB; total VM RAM 28GB, host retains ~4GB
+- GPU workload: RTX 3070 Ti on the host; PCIe passthrough to a worker node and NVIDIA Device Plugin deployment are planned for Phase 8
+- Remote access: `sslh` on port 443 (SSH + HTTPS multiplexer) is the near-term solution for DPI-restricted networks; Tailscale is replaced; Xray/V2Ray+Reality is documented as a DPI-resistant alternative for Phase 13
 - Kubernetes version target for the current phase:
   - use Kubernetes minor version `1.35`
   - use the same minor version for both the manual training pass and the first Ansible automation pass

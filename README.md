@@ -87,11 +87,12 @@ Target access model:
 
 ## 🖥️ Virtual Machines
 
-| Node            | CPU | RAM  | Disk  |
-|-----------------|-----|------|-------|
-| control-plane   | 2   | 4GB  | 100GB |
-| worker-1        | 3   | 12GB | 100GB |
-| worker-2        | 3   | 12GB | 100GB |
+| Node          | CPU | RAM | Disk  | Role                      |
+|---------------|-----|-----|-------|---------------------------|
+| control-plane | 2   | 4GB | 100GB | Kubernetes control plane  |
+| worker-1      | 3   | 8GB | 100GB | Kubernetes workloads      |
+| worker-2      | 3   | 8GB | 100GB | Kubernetes workloads      |
+| gitlab-vm     | 2   | 8GB | 100GB | GitLab CI (standalone VM) |
 
 Addressing model for the VM network:
 
@@ -105,6 +106,7 @@ Planned VM IP assignments:
 - `control-plane` → `192.168.122.10`
 - `worker-1` → `192.168.122.11`
 - `worker-2` → `192.168.122.12`
+- `gitlab-vm` → `192.168.122.20`
 
 ---
 
@@ -326,10 +328,10 @@ Access to services:
 - [ ] Define the service exposure model for the lab
 
 ### Phase 5 — GitLab CI
-- [ ] Decide on GitLab CI deployment model (self-hosted instance on cluster or SaaS GitLab.com with cluster runner)
-- [ ] Deploy GitLab CI runner or self-hosted GitLab instance
+- [ ] Provision and configure the `gitlab-vm` (Ubuntu, GitLab CE)
+- [ ] Deploy GitLab Runner into the Kubernetes cluster as a Kubernetes executor
+- [ ] Connect the Runner to the GitLab instance on `gitlab-vm`
 - [ ] Build and validate a first pipeline (lint, test, build)
-- [ ] Integrate the pipeline with the Kubernetes cluster
 
 ### Phase 6 — GitOps with ArgoCD
 - [ ] Deploy ArgoCD on the cluster
@@ -354,6 +356,7 @@ Access to services:
 - [ ] Deploy Kyverno for admission control and policy enforcement
 - [ ] Configure AppArmor and Seccomp profiles for critical workloads
 - [ ] Configure NetworkPolicies for traffic isolation between namespaces
+- [ ] Configure NVIDIA PCIe passthrough to a worker node and deploy the NVIDIA Device Plugin; validate a GPU workload running inside a Kubernetes pod (RTX 3070 Ti on the host)
 
 ### Phase 9 — Secure CI/CD Pipeline (Shift Left)
 - [ ] Integrate SAST into the GitLab CI pipeline (SonarQube or Snyk)
@@ -384,7 +387,9 @@ Access to services:
 - [ ] Define a baseline security and network policy approach for the cluster
 
 ### Phase 13 — Remote Access
-- [ ] Configure Tailscale for access from external networks
+- [ ] Configure `sslh` on the host to multiplex SSH and HTTPS on port 443
+- [ ] Validate SSH access over port 443 from external networks
+- [ ] Evaluate Xray/V2Ray with VLESS+Reality as a DPI-resistant tunnel alternative for restrictive network environments
 
 ---
 

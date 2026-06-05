@@ -13,14 +13,21 @@ locals {
       ip       = "192.168.122.11"
       mac      = "52:54:00:10:00:11"
       vcpu     = 3
-      memory   = 12288
+      memory   = 8192
       disk_gib = 100
     }
     worker-2 = {
       ip       = "192.168.122.12"
       mac      = "52:54:00:10:00:12"
       vcpu     = 3
-      memory   = 12288
+      memory   = 8192
+      disk_gib = 100
+    }
+    gitlab-vm = {
+      ip       = "192.168.122.20"
+      mac      = "52:54:00:10:00:20"
+      vcpu     = 2
+      memory   = 8192
       disk_gib = 100
     }
   }
