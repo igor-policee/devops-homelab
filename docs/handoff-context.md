@@ -267,49 +267,66 @@ What is already done:
   - `containerd` and `kubelet` returned as `active` on all nodes
 - the reboot scenario is now a validated day-2 behavior for the current single-host cluster baseline
 
-What needs to happen next:
-1. Treat the Kubernetes automation phase as the new baseline and avoid reopening bootstrap fixes unless a fresh repro appears
-2. Use the updated roadmap framing for the next phases:
-   - service delivery baseline (Phase 4: Cilium Gateway API, ingress routing)
-   - GitLab CI deployment (Phase 5)
-   - GitOps with ArgoCD (Phase 6)
-   - Secrets and identity: Vault + Keycloak + LDAP (Phase 7)
-   - Container and Kubernetes security: Harbor, CIS Benchmarks, Kyverno, RBAC (Phase 8)
-   - Secure CI/CD pipeline: SAST, SCA, DAST, supply chain, DefectDojo (Phase 9)
-   - Security testing and monitoring: SIEM, MITRE ATT&CK, Threat Modeling, OWASP SAMM (Phase 10)
-   - observability: Prometheus, Grafana, Loki (Phase 11)
-   - operations and recovery (Phase 12)
-   - remote access via reverse SSH tunnel — Phase 13 (mostly complete)
-3. The most likely next concrete step is the service delivery baseline:
-   - Cilium Gateway API
-   - ingress routing
-   - service exposure model
-4. If networking work starts next, decide whether `kube-proxy` should remain enabled or later be replaced by a Cilium eBPF mode in a separate documented change
-5. Keep using `homelab-ubuntu` as the execution point for OpenTofu, `kubectl`, Helm, and the Ansible localhost operator workflow
+Ansible automation state (as of 2026-06-05):
+
+The following changes are committed and ready to run on homelab-ubuntu but not yet applied:
+- `kubernetes_packages` role: switched from GitLab-hosted .deb to pkgs.k8s.io official apt repo; no GITLAB_TOKEN required
+- `kubeadm_control_plane` role: adds `--skip-phases=addon/kube-proxy` for Cilium eBPF replacement
+- `cilium_install` role: installs Gateway API CRDs and configures Cilium with `kubeProxyReplacement: true` and `gatewayAPI.enabled: true`
+- `kvm_libvirt` network template: adds homelab.internal DNS entries served by libvirt dnsmasq
+- `internal_ca` role: generates homelab CA on homelab-ubuntu, issues per-service TLS certificates
+- `gitlab_ce` role: installs GitLab CE on gitlab-vm at `https://gitlab.homelab.internal`
+- New playbooks: `tls-bootstrap.yml`, `gitlab-bootstrap.yml`
+- New Ansible collection dependency: `community.crypto` (run `ansible-galaxy collection install -r requirements.yml`)
+- VM topology: 4 nodes — control-plane 100GB, worker-1 200GB, worker-2 200GB, gitlab-vm 200GB (QCOW2 thin-provisioned)
+
+What needs to happen next (operational steps on homelab-ubuntu):
+```bash
+cd ~/devops-homelab && git pull
+
+# 1. Install Ansible collections
+cd ansible && ansible-galaxy collection install -r requirements.yml
+
+# 2. Rebuild all VMs (new specs: 4 nodes, updated disk/RAM)
+cd ../terraform/libvirt
+TF_CLI_CONFIG_FILE=$HOME/.config/opentofu/offline.tfrc tofu destroy
+TF_CLI_CONFIG_FILE=$HOME/.config/opentofu/offline.tfrc tofu apply
+
+# 3. Update libvirt network DNS (host-bootstrap adds homelab.internal entries)
+cd ../../ansible
+ansible-playbook -K playbooks/host-bootstrap.yml
+
+# 4. Generate internal CA and GitLab TLS certificate
+ansible-playbook -K playbooks/tls-bootstrap.yml
+
+# 5. Install GitLab CE on gitlab-vm
+ansible-playbook -K playbooks/gitlab-bootstrap.yml
+
+# 6. Deploy Kubernetes cluster (eBPF + Gateway API)
+ansible-playbook -K playbooks/kubernetes-bootstrap.yml
+```
 
 Validation status:
-- validated:
-  - `tofu destroy`
-  - `tofu apply`
-  - first Kubernetes automation run
-  - second Kubernetes automation run with idempotent `changed=0` results
-  - physical host reboot with libvirt guest autostart and Kubernetes cluster recovery
-- not yet validated in this repository phase:
-  - service delivery baseline
-  - GitLab CI deployment and pipeline execution
+- validated (Phase 1–3):
+  - `tofu destroy` → `tofu apply` cycle
+  - Kubernetes automation end-to-end (two idempotent runs)
+  - physical host reboot with cluster recovery
+  - remote access via reverse SSH tunnel through VPS
+- pending validation (Phase 4–5, first run with new automation):
+  - VM rebuild with 4-node topology (gitlab-vm added, updated disk sizes)
+  - homelab.internal DNS via libvirt dnsmasq
+  - internal CA generation and certificate issuance
+  - GitLab CE installation at https://gitlab.homelab.internal
+  - Kubernetes cluster with eBPF kube-proxy replacement
+  - Cilium Gateway API CRDs and GatewayClass
+- not yet started:
+  - Cilium Gateway API ingress routing and service exposure model
+  - GitLab Runner deployment into Kubernetes as Kubernetes executor
   - ArgoCD bootstrap and application delivery pattern
   - Vault bootstrap and secret injection workflow
-  - Keycloak identity and access management, LDAP integration
-  - Harbor private container registry with vulnerability scanning
-  - Secure CI/CD pipeline: SAST (SonarQube), SCA, DAST (OWASP ZAP)
-  - Kubernetes security hardening: CIS Benchmark, Kyverno, AppArmor/Seccomp
-  - Supply chain security: Cosign image signing, Syft SBOM
-  - DefectDojo vulnerability management
-  - Security monitoring: SIEM, MITRE ATT&CK
-  - Threat Modeling and OWASP SAMM maturity assessment
-  - observability stack
-  - day-2 operations and recovery runbooks
-  - SSH port forwarding through tunnel for cluster services (ArgoCD, Grafana)
+  - all DevSecOps tooling phases (Phases 8–10)
+  - observability stack (Phase 11)
+  - SSH port forwarding through tunnel for cluster services
 
 Operational note:
 - the host copy at `~/devops-homelab` remains the operational execution point for current OpenTofu, `kubectl`, Helm, and VM-side bootstrap work
