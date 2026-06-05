@@ -41,22 +41,31 @@ Consequences:
 
 ## 2026-04-30 — Use GitLab Generic Package Registry as the bootstrap package source
 
+**Superseded by the 2026-06-05 decision below — the external gitlab.com source has been decommissioned.**
+
+Decision (original):
+- used the GitLab project `igor-policee/k8s-bootstrap-artifacts` on gitlab.com as the fallback source for Kubernetes bootstrap packages
+- package name `kubernetes-debs`, package version `v1.35.4`
+- installed `cri-tools`, `kubeadm`, `kubectl`, `kubelet`, and `kubernetes-cni` from downloaded `.deb` files
+- put those packages on `apt hold` and disabled the upstream `kubernetes.list` source
+
+## 2026-06-05 — Move Kubernetes bootstrap artifacts to local GitLab CE
+
 Decision:
-- use the GitLab project `igor-policee/k8s-bootstrap-artifacts` as the fallback source for Kubernetes bootstrap packages
-- keep package name `kubernetes-debs` and package version `v1.35.4`
-- install `cri-tools`, `kubeadm`, `kubectl`, `kubelet`, and `kubernetes-cni` from the downloaded `.deb` files
-- put those packages on `apt hold` and disable the upstream `kubernetes.list` source during this phase
+- the external gitlab.com source (`igor-policee/k8s-bootstrap-artifacts`) has been decommissioned
+- Kubernetes bootstrap artifacts are now hosted in the local GitLab CE instance on `gitlab-vm` (`192.168.122.20`)
+- package name `kubernetes-debs` and package version `v1.35.4` remain unchanged
+- `kubernetes_gitlab_api` in `group_vars/all.yml` now points to `http://192.168.122.20/api/v4`
+- `kubernetes_gitlab_project_id` must be set after `gitlab-bootstrap.yml` creates the project
 
 Reason:
-- large `.deb` downloads from `pkgs.k8s.io` are unreliable from the project location even when repository metadata remains reachable
-- the bootstrap workflow needs a source that can be reused for both the manual and automated phases
-
-Alternatives considered:
-- depend only on direct `pkgs.k8s.io` downloads during bootstrap
+- eliminates the external dependency on gitlab.com for every cluster rebuild
+- the local GitLab CE (Phase 5) is available on the same libvirt NAT network as all Kubernetes nodes
+- download reliability and latency improve significantly for LAN-local artifact delivery
 
 Consequences:
-- the first Ansible implementation must reproduce the same package-source, hold, and repo-disable behavior
-- the project should avoid assuming stable access to the upstream Kubernetes CDN during bootstrap
+- `gitlab-bootstrap.yml` must run and the artifacts must be uploaded to local GitLab before `kubernetes-bootstrap.yml` can succeed
+- the `GITLAB_TOKEN` env var now refers to a personal access token from the local GitLab instance
 
 ## 2026-04-30 — Manage the manual cluster from `homelab-ubuntu`
 

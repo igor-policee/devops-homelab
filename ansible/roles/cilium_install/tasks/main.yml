@@ -4,7 +4,25 @@
   ansible.builtin.command: helm version --short
   changed_when: false
 
+# Gateway API CRDs must exist before Cilium starts so it can register the GatewayClass on boot.
+- name: Install Gateway API CRDs
+  ansible.builtin.command:
+    argv:
+      - kubectl
+      - apply
+      - -f
+      - "https://github.com/kubernetes-sigs/gateway-api/releases/download/{{ gateway_api_version }}/experimental-install.yaml"
+  environment:
+    KUBECONFIG: "{{ kubernetes_operator_kubeconfig_path }}"
+  register: gateway_api_crds_result
+  changed_when: >-
+    'created' in gateway_api_crds_result.stdout or
+    'configured' in gateway_api_crds_result.stdout
+
 # Reconcile the validated Cilium chart version with an idempotent Helm-aware module.
+# k8sServiceHost and k8sServicePort are required when kube-proxy is disabled: the
+# kubernetes.default ClusterIP is not set up until Cilium itself handles it, so Cilium
+# must connect directly to the control plane API server on first start.
 - name: Install Cilium chart
   kubernetes.core.helm:
     binary_path: helm
@@ -15,3 +33,9 @@
     create_namespace: true
     kubeconfig: "{{ kubernetes_operator_kubeconfig_path }}"
     wait: true
+    values:
+      kubeProxyReplacement: "true"
+      k8sServiceHost: "{{ kubernetes_control_plane_advertise_address }}"
+      k8sServicePort: "6443"
+      gatewayAPI:
+        enabled: true

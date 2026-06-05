@@ -1,5 +1,7 @@
 # Kubernetes kubeadm manual cluster bootstrap
 
+> **Historical record — Phase 2 only.** The external gitlab.com artifact source referenced in this runbook has been decommissioned. Current automation uses the local GitLab CE instance on `gitlab-vm` (`192.168.122.20`). Do not follow this runbook for new cluster builds — use `ansible-playbook playbooks/kubernetes-bootstrap.yml` instead.
+
 This runbook documents a manual Kubernetes installation on the libvirt guests before the same flow is automated with Ansible.
 
 Goal:

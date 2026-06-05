@@ -215,13 +215,10 @@ What is already done:
 - guest DHCP and VM boot are confirmed working
 - guest SSH access is confirmed working with the `homelab` user
 - `homelab-ubuntu` is the correct execution point for reaching the libvirt guest network directly
-- the GitLab fallback source for Kubernetes bootstrap artifacts is created:
-  - project: `igor-policee/k8s-bootstrap-artifacts`
-  - project id: `81772984`
-  - package name: `kubernetes-debs`
-  - package version: `v1.35.4`
-- the Kubernetes `1.35.4` bootstrap package set was uploaded to the GitLab Generic Package Registry
-- the package set was validated through GitLab download URLs and checksum verification
+- the Kubernetes bootstrap artifacts (`kubernetes-debs`, version `v1.35.4`) are hosted in the local GitLab CE instance on `gitlab-vm` (`192.168.122.20`); the external gitlab.com source has been decommissioned
+- package name: `kubernetes-debs`, package version: `v1.35.4`
+- the local GitLab project ID must be set in `group_vars/all.yml` after `gitlab-bootstrap.yml` runs
+- the bootstrap package set was validated through the GitLab Generic Package Registry download flow and checksum verification
 - the bootstrap package set was installed on the current nodes from GitLab-hosted `.deb` files instead of direct `pkgs.k8s.io` payload downloads
 - the nodes were configured to keep `kubeadm`, `kubelet`, `kubectl`, `cri-tools`, and `kubernetes-cni` on hold
 - the upstream Kubernetes apt source was disabled on the nodes for this phase after the fallback installation

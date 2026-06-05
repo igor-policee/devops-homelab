@@ -1,0 +1,31 @@
+---
+- name: Install GitLab CE prerequisite packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ca-certificates
+      - tzdata
+    state: present
+    update_cache: true
+
+- name: Add GitLab CE apt repository
+  ansible.builtin.shell:
+    cmd: curl -sS https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh | bash
+    creates: /etc/apt/sources.list.d/gitlab_gitlab-ce.list
+
+- name: Install GitLab CE package
+  ansible.builtin.apt:
+    name: gitlab-ce
+    state: present
+    update_cache: true
+  environment:
+    EXTERNAL_URL: "{{ gitlab_external_url }}"
+
+# gitlab-ctl reconfigure is idempotent; re-runs converge configuration without side effects.
+- name: Ensure GitLab is configured and running
+  ansible.builtin.command: gitlab-ctl reconfigure
+  changed_when: false
+
+- name: Show initial root password location
+  ansible.builtin.debug:
+    msg: "Initial root password is at /etc/gitlab/initial_root_password on gitlab-vm"

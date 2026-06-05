@@ -1,0 +1,6 @@
+---
+- name: Bootstrap GitLab CE on gitlab-vm
+  hosts: gitlab
+  become: true
+  roles:
+    - role: gitlab_ce

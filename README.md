@@ -126,11 +126,10 @@ Planned VM IP assignments:
   - the validated Cilium chart version is `1.19.3`
 - Bootstrap packaging note:
   - direct access to `pkgs.k8s.io` may be unreliable from the project location
-  - Kubernetes package delivery must not depend only on the upstream CDN
-  - the project should support an alternate package source for manual bootstrap and Ansible automation
-  - the selected fallback source is a dedicated GitLab project named `k8s-bootstrap-artifacts`
-  - after installing Kubernetes packages from fallback artifacts, keep the bootstrap package set on `apt hold`
-  - after installing from fallback artifacts, disable the upstream Kubernetes apt source on the nodes for this phase
+  - Kubernetes package delivery uses a local GitLab CE instance on `gitlab-vm` (`192.168.122.20`) as the package source
+  - package set: `kubernetes-debs`, version `v1.35.4`, stored in the local GitLab Generic Package Registry
+  - after installing Kubernetes packages from local artifacts, keep the bootstrap package set on `apt hold`
+  - after installing from local artifacts, disable the upstream Kubernetes apt source on the nodes for this phase
 
 ---
 
@@ -252,10 +251,10 @@ Automation notes:
   - worker join
   - Cilium install
 - the first automation pass keeps Kubernetes pinned to `v1.35.4`, uses `10.244.0.0/16` as the pod CIDR, and installs Cilium `1.19.3`
-- the playbook expects `GITLAB_TOKEN` on the Ansible control node and never stores the token in the repository
+- the playbook expects `GITLAB_TOKEN` on the Ansible control node (personal access token from the local GitLab CE instance) and never stores the token in the repository
 - `homelab-ubuntu` currently remains the intended execution point because it can reach the `192.168.122.0/24` guest network directly
 - the final localhost automation play now installs operator tooling as needed:
-  - `kubectl` from the validated GitLab fallback package source
+  - `kubectl` from the local GitLab CE package source
   - `helm` from the official Helm binary release
 - the final Cilium play now runs with `connection: local` on the Ansible control node instead of SSHing back into `homelab-ubuntu`
 - the final Cilium play uses `kubernetes.core.helm` so a second successful run stays idempotent instead of reporting a false-positive `changed` from `helm upgrade --install`
